@@ -1,0 +1,476 @@
+{
+  "components": {
+    "comp-augment-user-posture-data": {
+      "executorLabel": "exec-augment-user-posture-data",
+      "inputDefinitions": {
+        "artifacts": {
+          "preprocessed_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "sample_size_per_posture": {
+            "defaultValue": 5.0,
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "augmented_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-flatten-and-split-user-data": {
+      "executorLabel": "exec-flatten-and-split-user-data",
+      "inputDefinitions": {
+        "artifacts": {
+          "normalized_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "train_val_test_data": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-normalize-user-posture-data": {
+      "executorLabel": "exec-normalize-user-posture-data",
+      "inputDefinitions": {
+        "artifacts": {
+          "augmented_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "normalized_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-preprocess-user-posture-data": {
+      "executorLabel": "exec-preprocess-user-posture-data",
+      "inputDefinitions": {
+        "parameters": {
+          "bucket_name": {
+            "parameterType": "STRING"
+          },
+          "user_id": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "preprocessed_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-register-user-model": {
+      "executorLabel": "exec-register-user-model",
+      "inputDefinitions": {
+        "artifacts": {
+          "model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "user_id": {
+            "parameterType": "STRING"
+          }
+        }
+      }
+    },
+    "comp-train-user-cnn-model": {
+      "executorLabel": "exec-train-user-cnn-model",
+      "inputDefinitions": {
+        "artifacts": {
+          "train_val_test_data": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "batch_size": {
+            "defaultValue": 8.0,
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "epochs": {
+            "defaultValue": 30.0,
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "cnn_model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-augment-user-posture-data": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "augment_user_posture_data"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'numpy' 'scipy' 'scikit-image'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef augment_user_posture_data(\n    preprocessed_frames: Input[Dataset],\n    augmented_frames: Output[Dataset],\n    sample_size_per_posture: int = 5  # Smaller for individual users\n):\n    \"\"\"Augment user-specific posture data (same as working pipeline)\"\"\"\n    import numpy as np\n    import json\n    import os\n    import random\n    from scipy.ndimage import gaussian_filter, map_coordinates, rotate\n\n    # Load user data\n    with open(f\"{preprocessed_frames.path}/all_frames.json\", \"r\") as f:\n        all_frames = json.load(f)\n\n    with open(f\"{preprocessed_frames.path}/metadata.json\", \"r\") as f:\n        metadata = json.load(f)\n\n    user_id = metadata[\"user_id\"]\n    print(f\"\ud83d\udc64 Augmenting data for user: {user_id}\")\n    print(f\"\ud83d\udd04 Creating {sample_size_per_posture} augmented samples per frame...\")\n    print(f\"\ud83d\udcca Original dataset: {len(all_frames)} frames\")\n\n    # Convert to numpy arrays\n    for frame in all_frames:\n        frame[\"backrest\"] = np.array(frame[\"backrest\"])\n        frame[\"seat\"] = np.array(frame[\"seat\"])\n\n    # Same augmentation functions as working pipeline\n    def add_noise(data, noise_ratio=0.5):\n        data_std = np.std(data)\n        noise_level = noise_ratio * data_std\n        noise = np.random.normal(0, noise_level, data.shape)\n        return data + noise\n\n    def shift_data(data, shift_max=10):\n        shift_amount = np.random.randint(-shift_max, shift_max + 1)\n        shifted_data = np.roll(data, shift_amount)\n        return np.clip(shifted_data, 0, 255)\n\n    def rotate_data(data, angle):\n        if len(data) == 1024:\n            grid = data.reshape(32, 32)\n            rotated_grid = rotate(grid, angle, reshape=False)\n            return np.clip(rotated_grid.flatten(), 0, 255)\n        elif len(data) == 32:\n            return np.clip(data, 0, 255)\n        else:\n            return np.clip(data, 0, 255)\n\n    def random_erasing(data, erase_prob=0.5, erase_size=0.1):\n        if random.random() < erase_prob:\n            data_copy = data.copy()\n            length = len(data)\n            erase_length = int(length * erase_size)\n            start_idx = np.random.randint(0, length - erase_length)\n            data_copy[start_idx:start_idx + erase_length] = 0\n            return np.clip(data_copy, 0, 255)\n        return np.clip(data, 0, 255)\n\n    def elastic_transform(data, alpha, sigma):\n        try:\n            if len(data) == 1024:\n                grid = data.reshape(32, 32)\n                random_state = np.random.RandomState(None)\n                shape = grid.shape\n                dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode=\"constant\", cval=0) * alpha\n                dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode=\"constant\", cval=0) * alpha\n                x, y = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), indexing='ij')\n                indices = np.reshape(x + dx, (-1, 1)), np.reshape(y + dy, (-1, 1))\n                transformed = map_coordinates(grid, indices, order=1, mode='reflect').reshape(shape)\n                return np.clip(transformed.flatten(), 0, 255)\n            elif len(data) == 32:\n                return np.clip(data, 0, 255)\n            else:\n                return np.clip(data, 0, 255)\n        except:\n            return np.clip(data, 0, 255)\n\n    def complex_augment_data(data, sample_size=10):\n        augmented_data = []\n        for _ in range(sample_size):\n            aug_data = data.copy()\n            if random.choice([True, False]):\n                aug_data = shift_data(aug_data, shift_max=np.random.randint(1, 6))\n            if random.choice([True, False]):\n                aug_data = rotate_data(aug_data, angle=np.random.uniform(-30, 30))\n            if random.choice([True, False]):\n                aug_data = random_erasing(aug_data)\n            if random.choice([True, False]):\n                aug_data = elastic_transform(aug_data, alpha=24, sigma=4)\n            if random.choice([True, False]):\n                aug_data = add_noise(aug_data)\n            augmented_data.append(aug_data)\n        return augmented_data\n\n    # Generate augmented dataset for this user\n    augmented_dataset = []\n\n    for i, frame in enumerate(all_frames):\n        if i % 10 == 0:\n            print(f\"   Processing frame {i+1}/{len(all_frames)}\")\n\n        posture_name = frame[\"posture\"]\n\n        augmented_backrest = complex_augment_data(frame[\"backrest\"], sample_size=sample_size_per_posture)\n        augmented_seat = complex_augment_data(frame[\"seat\"], sample_size=sample_size_per_posture)\n\n        for backrest, seat in zip(augmented_backrest, augmented_seat):\n            augmented_dataset.append({\n                \"posture\": posture_name, \n                \"backrest\": backrest.tolist(), \n                \"seat\": seat.tolist(),\n                \"user_id\": user_id\n            })\n\n    print(f\"\u2705 Augmentation complete for user {user_id}!\")\n    print(f\"\ud83d\udcca Original dataset size: {len(all_frames)}\")\n    print(f\"\ud83d\udcca Augmented dataset size: {len(augmented_dataset)}\")\n\n    # Convert numpy arrays back to lists for JSON storage\n    for frame in all_frames:\n        frame[\"backrest\"] = frame[\"backrest\"].tolist()\n        frame[\"seat\"] = frame[\"seat\"].tolist()\n\n    # Save augmented data\n    os.makedirs(augmented_frames.path, exist_ok=True)\n\n    with open(f\"{augmented_frames.path}/original_frames.json\", \"w\") as f:\n        json.dump(all_frames, f)\n\n    with open(f\"{augmented_frames.path}/augmented_frames.json\", \"w\") as f:\n        json.dump(augmented_dataset, f)\n\n    # Save metadata\n    augmentation_metadata = {\n        **metadata,\n        \"original_frame_count\": len(all_frames),\n        \"augmented_frame_count\": len(augmented_dataset),\n        \"augmentation_ratio\": sample_size_per_posture,\n        \"total_frames_after_augmentation\": len(all_frames) + len(augmented_dataset)\n    }\n\n    with open(f\"{augmented_frames.path}/augmentation_metadata.json\", \"w\") as f:\n        json.dump(augmentation_metadata, f, indent=2)\n\n    print(f\"\ud83d\udcbe Saved augmented data for user {user_id}\")\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-flatten-and-split-user-data": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "flatten_and_split_user_data"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'numpy' 'scikit-learn'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef flatten_and_split_user_data(\n    normalized_frames: Input[Dataset],\n    train_val_test_data: Output[Dataset]\n):\n    \"\"\"Flatten and split user data exactly like your working pipeline\"\"\"\n    import numpy as np\n    import json\n    import os\n    from sklearn.model_selection import train_test_split\n    from sklearn.preprocessing import LabelEncoder\n\n    print(\"\ud83d\udd04 Flattening matrices and creating train/val/test splits for user...\")\n\n    # Load normalized data\n    with open(f\"{normalized_frames.path}/normalized_original.json\", \"r\") as f:\n        normalized_original = json.load(f)\n\n    with open(f\"{normalized_frames.path}/normalized_augmented.json\", \"r\") as f:\n        normalized_augmented = json.load(f)\n\n    with open(f\"{normalized_frames.path}/normalization_metadata.json\", \"r\") as f:\n        metadata = json.load(f)\n\n    user_id = metadata[\"user_id\"]\n    print(f\"\ud83d\udc64 Processing data for user: {user_id}\")\n    print(f\"\ud83d\udcca Original normalized data: {len(normalized_original)} samples\")\n    print(f\"\ud83d\udcca Augmented normalized data: {len(normalized_augmented)} samples\")\n\n    # Your exact flatten function\n    def flatten_matrix(matrix):\n        return np.array(matrix).flatten()\n\n    # Prepare the data for training - your exact logic\n    features = []\n    labels = []\n\n    print(\"\ud83d\udd27 Flattening backrest and seat data...\")\n    for data_point in np.concatenate((normalized_original, normalized_augmented)):\n        flat_backrest = flatten_matrix(data_point['backrest'])\n        flat_seat = flatten_matrix(data_point['seat'])\n        features.append(np.concatenate((flat_backrest, flat_seat)))\n        labels.append(data_point['posture'])\n\n    X = np.array(features)\n    y = np.array(labels)\n\n    print(f\"\ud83d\udccf Feature matrix shape: {X.shape}\")\n    print(f\"\ud83c\udff7\ufe0f Labels shape: {y.shape}\")\n    print(f\"\ud83c\udfaf Features per sample: {X.shape[1]} (32 backrest + 32 seat = 64 total)\")\n\n    # Check if we have enough data for splitting\n    if len(X) < 10:\n        raise ValueError(f\"Not enough data for user {user_id}. Need at least 10 samples, got {len(X)}\")\n\n    # Encode the labels - your exact approach\n    label_encoder = LabelEncoder()\n    y_encoded = label_encoder.fit_transform(y)\n\n    print(f\"\ud83d\udd22 Unique labels: {len(np.unique(y_encoded))}\")\n    print(f\"\ud83c\udff7\ufe0f Label mapping: {dict(zip(label_encoder.classes_, label_encoder.transform(label_encoder.classes_)))}\")\n\n    # Split the data - adjust for smaller datasets\n    # For individual users, we might have less data, so adjust split ratios\n    if len(X) < 50:\n        # Smaller dataset - use simpler split\n        test_size = min(0.3, max(0.1, 5/len(X)))  # At least 1 sample, max 30%\n        val_size = min(0.2, max(0.1, 3/len(X)))   # At least 1 sample, max 20%\n    else:\n        # Normal split ratios\n        test_size = 0.2\n        val_size = 0.2\n\n    try:\n        # First split: separate test set\n        X_train_temp, X_test, y_train_temp, y_test = train_test_split(\n            X, y_encoded, test_size=test_size, random_state=42, stratify=y_encoded\n        )\n\n        # Second split: separate validation from training\n        if len(X_train_temp) > 3:  # Only create validation set if we have enough data\n            X_train, X_val, y_train, y_val = train_test_split(\n                X_train_temp, y_train_temp, test_size=val_size, random_state=42, stratify=y_train_temp\n            )\n        else:\n            # Too little data for validation set\n            X_train, X_val = X_train_temp, X_train_temp\n            y_train, y_val = y_train_temp, y_train_temp\n\n    except ValueError as e:\n        # If stratified split fails due to small classes, use regular split\n        print(f\"\u26a0\ufe0f Stratified split failed, using regular split: {str(e)}\")\n        X_train_temp, X_test, y_train_temp, y_test = train_test_split(\n            X, y_encoded, test_size=test_size, random_state=42\n        )\n\n        if len(X_train_temp) > 3:\n            X_train, X_val, y_train, y_val = train_test_split(\n                X_train_temp, y_train_temp, test_size=val_size, random_state=42\n            )\n        else:\n            X_train, X_val = X_train_temp, X_train_temp\n            y_train, y_val = y_train_temp, y_train_temp\n\n    print(f\"\ud83d\udcc8 Train: {len(X_train)} samples ({len(X_train)/len(X)*100:.1f}%)\")\n    print(f\"\ud83d\udcca Validation: {len(X_val)} samples ({len(X_val)/len(X)*100:.1f}%)\")\n    print(f\"\ud83d\udcc9 Test: {len(X_test)} samples ({len(X_test)/len(X)*100:.1f}%)\")\n\n    # Save split data\n    os.makedirs(train_val_test_data.path, exist_ok=True)\n\n    # Save as numpy arrays\n    np.save(f\"{train_val_test_data.path}/X_train.npy\", X_train)\n    np.save(f\"{train_val_test_data.path}/X_val.npy\", X_val)\n    np.save(f\"{train_val_test_data.path}/X_test.npy\", X_test)\n    np.save(f\"{train_val_test_data.path}/y_train.npy\", y_train)\n    np.save(f\"{train_val_test_data.path}/y_val.npy\", y_val)\n    np.save(f\"{train_val_test_data.path}/y_test.npy\", y_test)\n\n    # Save label encoder and metadata\n    import joblib\n    joblib.dump(label_encoder, f\"{train_val_test_data.path}/label_encoder.pkl\")\n\n    split_metadata = {\n        **metadata,\n        \"total_samples\": len(X),\n        \"feature_dimension\": X.shape[1],\n        \"num_classes\": len(np.unique(y_encoded)),\n        \"train_samples\": len(X_train),\n        \"val_samples\": len(X_val),\n        \"test_samples\": len(X_test),\n        \"train_percentage\": len(X_train)/len(X)*100,\n        \"val_percentage\": len(X_val)/len(X)*100,\n        \"test_percentage\": len(X_test)/len(X)*100,\n        \"label_classes\": label_encoder.classes_.tolist(),\n        \"data_shape_per_sample\": {\n            \"total_features\": X.shape[1],\n            \"backrest_features\": X.shape[1] // 2,\n            \"seat_features\": X.shape[1] // 2\n        }\n    }\n\n    with open(f\"{train_val_test_data.path}/split_metadata.json\", \"w\") as f:\n        json.dump(split_metadata, f, indent=2)\n\n    print(\"\u2705 Data flattening and splitting complete!\")\n    print(f\"\ud83d\udcbe Saved train/val/test data for user {user_id}\")\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-normalize-user-posture-data": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "normalize_user_posture_data"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'numpy'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef normalize_user_posture_data(\n    augmented_frames: Input[Dataset],\n    normalized_frames: Output[Dataset]\n):\n    \"\"\"Normalize the user's data using your exact Colab normalization\"\"\"\n    import numpy as np\n    import json\n    import os\n\n    print(\"\ud83d\udd04 Starting data normalization for user...\")\n\n    # Load augmented data\n    with open(f\"{augmented_frames.path}/original_frames.json\", \"r\") as f:\n        all_frames = json.load(f)\n\n    with open(f\"{augmented_frames.path}/augmented_frames.json\", \"r\") as f:\n        augmented_dataset = json.load(f)\n\n    with open(f\"{augmented_frames.path}/augmentation_metadata.json\", \"r\") as f:\n        metadata = json.load(f)\n\n    user_id = metadata[\"user_id\"]\n    print(f\"\ud83d\udc64 Normalizing data for user: {user_id}\")\n    print(f\"\ud83d\udcca Original frames: {len(all_frames)}\")\n    print(f\"\ud83d\udcca Augmented frames: {len(augmented_dataset)}\")\n\n    # Your exact sensor data extraction function\n    def extract_sensor_data(dataset):\n        backrest_data = []\n        seat_data = []\n        for frame in dataset:\n            backrest_data.append(frame[\"backrest\"])\n            seat_data.append(frame[\"seat\"])\n        return np.array(backrest_data), np.array(seat_data)\n\n    # Extract data from both datasets\n    orig_backrest, orig_seat = extract_sensor_data(all_frames)\n    aug_backrest, aug_seat = extract_sensor_data(augmented_dataset)\n\n    # Combine all sensor data to find global statistics\n    all_backrest = np.concatenate([orig_backrest, aug_backrest])\n    all_seat = np.concatenate([orig_seat, aug_seat])\n\n    # Calculate global min/max for each sensor type\n    backrest_min = all_backrest.min()\n    backrest_max = all_backrest.max()\n    seat_min = all_seat.min()\n    seat_max = all_seat.max()\n\n    print(f\"\ud83d\udccf Backrest range: [{backrest_min:.2f}, {backrest_max:.2f}]\")\n    print(f\"\ud83d\udccf Seat range: [{seat_min:.2f}, {seat_max:.2f}]\")\n\n    # Your exact normalize function\n    def normalize_dataset(dataset, backrest_min, backrest_max, seat_min, seat_max):\n        normalized = []\n        for frame in dataset:\n            backrest_array = np.array(frame[\"backrest\"])\n            seat_array = np.array(frame[\"seat\"])\n\n            normalized_frame = {\n                \"posture\": frame[\"posture\"],\n                \"backrest\": ((backrest_array - backrest_min) / (backrest_max - backrest_min)).tolist(),\n                \"seat\": ((seat_array - seat_min) / (seat_max - seat_min)).tolist(),\n                \"user_id\": frame.get(\"user_id\", metadata[\"user_id\"])\n            }\n            normalized.append(normalized_frame)\n        return normalized\n\n    # Normalize both datasets using global statistics\n    print(\"\u2696\ufe0f Normalizing original dataset...\")\n    normalized_original = normalize_dataset(all_frames, backrest_min, backrest_max, seat_min, seat_max)\n\n    print(\"\u2696\ufe0f Normalizing augmented dataset...\")\n    normalized_augmented = normalize_dataset(augmented_dataset, backrest_min, backrest_max, seat_min, seat_max)\n\n    print(\"\u2705 Normalization completed!\")\n    print(f\"\ud83d\udcca Normalized original dataset size: {len(normalized_original)}\")\n    print(f\"\ud83d\udcca Normalized augmented dataset size: {len(normalized_augmented)}\")\n\n    # Save normalized data\n    os.makedirs(normalized_frames.path, exist_ok=True)\n\n    with open(f\"{normalized_frames.path}/normalized_original.json\", \"w\") as f:\n        json.dump(normalized_original, f)\n\n    with open(f\"{normalized_frames.path}/normalized_augmented.json\", \"w\") as f:\n        json.dump(normalized_augmented, f)\n\n    # Save normalization parameters and metadata\n    normalization_metadata = {\n        **metadata,\n        \"normalization_params\": {\n            \"backrest_min\": float(backrest_min),\n            \"backrest_max\": float(backrest_max),\n            \"seat_min\": float(seat_min),\n            \"seat_max\": float(seat_max)\n        },\n        \"normalized_original_count\": len(normalized_original),\n        \"normalized_augmented_count\": len(normalized_augmented),\n        \"total_normalized_frames\": len(normalized_original) + len(normalized_augmented)\n    }\n\n    with open(f\"{normalized_frames.path}/normalization_metadata.json\", \"w\") as f:\n        json.dump(normalization_metadata, f, indent=2)\n\n    print(f\"\ud83d\udcbe Saved normalized data for user {user_id}\")\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-preprocess-user-posture-data": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "preprocess_user_posture_data"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'google-cloud-storage' 'pandas' 'numpy'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef preprocess_user_posture_data(\n    bucket_name: str,\n    user_id: str,\n    preprocessed_frames: Output[Dataset]\n):\n    \"\"\"Load and preprocess CSV files for a specific user\"\"\"\n    from google.cloud import storage\n    import pandas as pd\n    import numpy as np\n    import json\n    import os\n\n    print(f\"\ud83d\udc64 Processing calibration data for user: {user_id}\")\n    print(f\"\ud83d\udd0d Loading data from bucket: {bucket_name}\")\n\n    # Connect to Cloud Storage\n    client = storage.Client()\n    bucket = client.bucket(bucket_name)\n\n    # Find CSV files for this specific user\n    user_prefix = f\"users/{user_id}/posture_data/\"\n    blobs = list(bucket.list_blobs(prefix=user_prefix))\n    csv_files = [blob.name for blob in blobs if blob.name.endswith('.csv')]\n\n    print(f\"\ud83d\udcc1 Found {len(csv_files)} calibration files for {user_id}:\")\n    for file in csv_files:\n        print(f\"   \ud83d\udcc4 {file}\")\n\n    if len(csv_files) == 0:\n        raise ValueError(f\"No CSV files found for user {user_id} in {user_prefix}\")\n\n    # Create mapping from filename to posture code\n    filename_to_posture = {\n        'upright.csv': 'SP1',\n        'slouching.csv': 'SP2', \n        'leaning-left.csv': 'SP3',\n        'leaning-right.csv': 'SP4',\n        'leaning-back-new.csv': 'SP5',\n        'upright-right-leg-crossed.csv': 'SP6',\n        'upright-left-leg-crossed.csv': 'SP7',\n        'leaning-forward-slouching.csv': 'SP8',\n        'edge-sitting.csv': 'SP9',\n        'left-ankle-resting-right-leg.csv': 'SP10',\n        'right-ankle-resting-left-leg.csv': 'SP11',\n        'lounge-new.csv': 'SP12',\n        'leaning-back-sitting-edge-new.csv': 'SP13',\n        'leaning-back-left-ankle-resting-new.csv': 'SP14',\n        'leaning-back-right-ankle-resting.csv': 'SP15',\n        'leaning-back-left-leg-crossed.csv': 'SP16',\n        'leaning-back-right-leg-crossed.csv': 'SP17',\n        'left-rotating-trunk.csv': 'SP18',\n        'right-rotating-trunk.csv': 'SP19'\n    }\n\n    # Download and load all CSV files for this user\n    raw_dataset = {}\n    os.makedirs(\"./temp_csvs\", exist_ok=True)\n\n    for blob_name in csv_files:\n        filename = os.path.basename(blob_name)\n\n        # Skip if we don't recognize this file\n        if filename not in filename_to_posture:\n            print(f\"   \u26a0\ufe0f  Skipping unknown file: {filename}\")\n            continue\n\n        posture_code = filename_to_posture[filename]\n\n        # Download file\n        local_path = f\"./temp_csvs/{filename}\"\n        blob = bucket.blob(blob_name)\n        blob.download_to_filename(local_path)\n\n        # Load with pandas (no header, just like your working pipeline)\n        data = pd.read_csv(local_path, header=None)\n        raw_dataset[posture_code] = data\n\n        print(f\"   \u2705 Loaded {filename} as {posture_code}: {data.shape[0]} rows\")\n\n    print(f\"\ud83c\udfaf Loaded {len(raw_dataset)} posture datasets for user {user_id}\")\n\n    # Your exact preprocessing function (same as working pipeline)\n    def process_frame(frame_data):\n        sensor_size = 32\n        seat_data = frame_data.iloc[:sensor_size].values.tolist()\n        backrest_data = frame_data.iloc[sensor_size+1:(sensor_size*2)+1].values.tolist()\n        seat_data.reverse()\n        backrest_data.reverse()\n        return {\n            \"seat\": np.array(seat_data, dtype=float),\n            \"backrest\": np.array(backrest_data, dtype=float)\n        }\n\n    # Process frames (same as working pipeline)\n    all_frames = []\n\n    for key, data in raw_dataset.items():\n        print(f\"\ud83d\udd04 Processing frames for {key}...\")\n        frame_num = 0\n        frame_data = []\n        frames_for_this_posture = 0\n\n        for index, row in data.iterrows():\n            if row.isnull().all():\n                continue\n\n            if 'Frame' in str(row.iloc[0]):\n                if frame_data:\n                    try:\n                        processed_data = process_frame(pd.DataFrame(frame_data))\n                        all_frames.append({\n                            \"posture\": key,\n                            \"backrest\": processed_data[\"backrest\"].tolist(),\n                            \"seat\": processed_data[\"seat\"].tolist(),\n                            \"user_id\": user_id  # Add user ID to each frame\n                        })\n                        frames_for_this_posture += 1\n                    except Exception as e:\n                        print(f\"   \u26a0\ufe0f  Error processing frame {frame_num}: {str(e)}\")\n                    frame_data = []\n                frame_num += 1\n            else:\n                frame_data.append(row)\n\n        # Process the last frame\n        if frame_data:\n            try:\n                processed_data = process_frame(pd.DataFrame(frame_data))\n                all_frames.append({\n                    \"posture\": key,\n                    \"backrest\": processed_data[\"backrest\"].tolist(),\n                    \"seat\": processed_data[\"seat\"].tolist(),\n                    \"user_id\": user_id\n                })\n                frames_for_this_posture += 1\n            except Exception as e:\n                print(f\"   \u26a0\ufe0f  Error processing final frame: {str(e)}\")\n\n        print(f'   \u2705 Processed {key} posture with {frames_for_this_posture} frames')\n\n    print(f\"\ud83c\udf89 Total frames processed for {user_id}: {len(all_frames)}\")\n\n    # Count frames per posture\n    posture_counts = {}\n    for frame in all_frames:\n        posture = frame[\"posture\"]\n        posture_counts[posture] = posture_counts.get(posture, 0) + 1\n\n    print(\"\ud83d\udcca Frames per posture:\")\n    for posture, count in posture_counts.items():\n        print(f\"   {posture}: {count} frames\")\n\n    # Save processed frames\n    os.makedirs(preprocessed_frames.path, exist_ok=True)\n\n    with open(f\"{preprocessed_frames.path}/all_frames.json\", \"w\") as f:\n        json.dump(all_frames, f)\n\n    # Save metadata with user info\n    metadata = {\n        \"user_id\": user_id,\n        \"total_frames\": len(all_frames),\n        \"posture_counts\": posture_counts,\n        \"num_postures\": len(posture_counts),\n        \"sensor_size\": 32,\n        \"posture_timestamp\": pd.Timestamp.now().isoformat(),\n        \"frame_structure\": {\n            \"seat\": \"32 pressure sensors\",\n            \"backrest\": \"32 pressure sensors\", \n            \"posture\": \"User-specific posture classification\"\n        }\n    }\n\n    with open(f\"{preprocessed_frames.path}/metadata.json\", \"w\") as f:\n        json.dump(metadata, f, indent=2)\n\n    print(\"\u2705 User-specific preprocessing complete!\")\n    print(f\"\ud83d\udcbe Saved {len(all_frames)} processed frames for user {user_id}\")\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-register-user-model": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "register_user_model"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef register_user_model(user_id: str, model: Input[Model]):\n    from google.cloud import aiplatform\n    import os\n\n    aiplatform.init(project=os.getenv(\"GCLOUD_PROJECT_ID\"), location=\"europe-west2\")\n\n    aiplatform.Model.upload(\n        display_name=f\"user_model_{user_id}\",\n        artifact_uri=model.uri,\n        serving_container_image_uri=\"us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-12:latest\",\n        description=f\"Personalized CNN model for user {user_id}\"\n    )\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-train-user-cnn-model": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "train_user_cnn_model"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'scikit-learn' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train_user_cnn_model(\n    train_val_test_data: Input[Dataset],\n    cnn_model: Output[Model],\n    epochs: int = 30,\n    batch_size: int = 8\n):\n    \"\"\"Train user-specific CNN model\"\"\"\n    import numpy as np\n    import json\n    import os\n    import joblib\n    import tensorflow as tf\n    from tensorflow.keras import layers, models\n    from tensorflow.keras.callbacks import EarlyStopping\n    from tensorflow.keras.utils import to_categorical\n    from sklearn.metrics import classification_report, accuracy_score\n\n    # Load split data\n    X_train = np.load(f\"{train_val_test_data.path}/X_train.npy\")\n    X_val = np.load(f\"{train_val_test_data.path}/X_val.npy\")\n    X_test = np.load(f\"{train_val_test_data.path}/X_test.npy\")\n    y_train = np.load(f\"{train_val_test_data.path}/y_train.npy\")\n    y_val = np.load(f\"{train_val_test_data.path}/y_val.npy\")\n    y_test = np.load(f\"{train_val_test_data.path}/y_test.npy\")\n\n    label_encoder = joblib.load(f\"{train_val_test_data.path}/label_encoder.pkl\")\n\n    with open(f\"{train_val_test_data.path}/split_metadata.json\", \"r\") as f:\n        metadata = json.load(f)\n\n    user_id = metadata[\"user_id\"]\n    num_classes = metadata[\"num_classes\"]\n\n    print(f\"\ud83c\udfaf Training personalized CNN for user: {user_id}\")\n    print(f\"\ud83d\udcca Training data shape: {X_train.shape}\")\n    print(f\"\ud83d\udcca Validation data shape: {X_val.shape}\")\n    print(f\"\ud83d\udcca Test data shape: {X_test.shape}\")\n    print(f\"\ud83c\udff7\ufe0f Number of classes: {num_classes}\")\n    print(f\"\ud83c\udff7\ufe0f Classes: {metadata['label_classes']}\")\n\n    # Reshape data for CNN \n    def reshape_for_cnn(X):\n        # X shape: (samples, total_features) where total_features = backrest + seat\n        samples = X.shape[0]\n        total_features = X.shape[1]\n        features_per_sensor = total_features // 2  # Half for backrest, half for seat\n\n        # Split back into backrest and seat\n        backrest = X[:, :features_per_sensor]  # First half\n        seat = X[:, features_per_sensor:]      # Second half\n\n        if features_per_sensor == 1024:  # 32x32 sensors each\n            # Already the right shape for 32x32\n            backrest_grid = backrest.reshape(samples, 32, 32)\n            seat_grid = seat.reshape(samples, 32, 32)\n\n            # Stack as 2 channels (32, 32, 2)\n            combined = np.stack([backrest_grid, seat_grid], axis=-1)\n\n        elif features_per_sensor == 32:  # 32 sensors each (need to pad to 32x32)\n            # Reshape to some 2D grid and pad to 32x32\n            # Let's assume 4x8 for now, but this should be based on your actual sensor layout\n            backrest_grid = backrest.reshape(samples, 4, 8)\n            seat_grid = seat.reshape(samples, 4, 8)\n\n            # Pad from 4x8 to 32x32\n            backrest_padded = np.pad(backrest_grid, ((0, 0), (14, 14), (12, 12)), mode='constant')\n            seat_padded = np.pad(seat_grid, ((0, 0), (14, 14), (12, 12)), mode='constant')\n\n            # Stack as 2 channels\n            combined = np.stack([backrest_padded, seat_padded], axis=-1)\n\n        else:\n            raise ValueError(f\"Unexpected number of features per sensor: {features_per_sensor}\")\n\n        return combined\n\n    print(\"\ud83d\udd04 Reshaping data for CNN...\")\n    X_train_upscaled = reshape_for_cnn(X_train)\n    X_val_upscaled = reshape_for_cnn(X_val)\n    X_test_upscaled = reshape_for_cnn(X_test)\n\n    print(f\"\ud83d\udcd0 Reshaped training data: {X_train_upscaled.shape}\")\n\n    # Convert labels to categorical\n    y_train_categorical = to_categorical(y_train, num_classes)\n    y_val_categorical = to_categorical(y_val, num_classes)\n    y_test_categorical = to_categorical(y_test, num_classes)\n\n    # Create CNN model (same architecture as your working pipeline)\n    def create_cnn_model(input_shape, num_classes):\n        model = models.Sequential([\n            layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),\n            layers.MaxPooling2D((2, 2)),\n            layers.Conv2D(64, (3, 3), activation='relu'),\n            layers.MaxPooling2D((2, 2)),\n            layers.Flatten(),\n            layers.Dense(128, activation='relu'),\n            layers.Dense(num_classes, activation='softmax')\n        ])\n        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])\n        return model\n\n    input_shape = (32, 32, 2)\n    model = create_cnn_model(input_shape, num_classes)\n\n    print(\"\ud83c\udfd7\ufe0f User-specific CNN Model Architecture:\")\n    model.summary()\n\n    # Early stopping (same as working pipeline)\n    early_stopping = EarlyStopping(\n        monitor='val_loss',\n        patience=5,\n        restore_best_weights=True,\n        verbose=1\n    )\n\n    print(f\"\ud83d\ude80 Starting personalized CNN training for user {user_id}...\")\n    history = model.fit(\n        X_train_upscaled, y_train_categorical,\n        validation_data=(X_val_upscaled, y_val_categorical),\n        epochs=epochs,\n        batch_size=batch_size,\n        callbacks=[early_stopping],\n        verbose=1\n    )\n\n    # Evaluate the model\n    print(f\"\ud83d\udcca Evaluating personalized model for user {user_id}...\")\n\n    train_loss, train_accuracy = model.evaluate(X_train_upscaled, y_train_categorical, verbose=0)\n    val_loss, val_accuracy = model.evaluate(X_val_upscaled, y_val_categorical, verbose=0)\n    test_loss, test_accuracy = model.evaluate(X_test_upscaled, y_test_categorical, verbose=0)\n\n    print(f\"\ud83c\udfaf User {user_id} - Training Accuracy: {train_accuracy:.4f}\")\n    print(f\"\ud83c\udfaf User {user_id} - Validation Accuracy: {val_accuracy:.4f}\")\n    print(f\"\ud83c\udfaf User {user_id} - Test Accuracy: {test_accuracy:.4f}\")\n\n    # Detailed classification report\n    y_test_pred = model.predict(X_test_upscaled)\n    y_test_pred_classes = np.argmax(y_test_pred, axis=1)\n\n    print(f\"\\n\ud83d\udccb Test Set Classification Report for user {user_id}:\")\n    print(classification_report(y_test, y_test_pred_classes, target_names=metadata['label_classes']))\n\n    # Save the personalized model\n    os.makedirs(cnn_model.path, exist_ok=True)\n    model.save(f\"{cnn_model.path}/posture_cnn_model\")\n\n    # Save training history\n    history_dict = {\n        \"loss\": [float(x) for x in history.history['loss']],\n        \"accuracy\": [float(x) for x in history.history['accuracy']],\n        \"val_loss\": [float(x) for x in history.history['val_loss']],\n        \"val_accuracy\": [float(x) for x in history.history['val_accuracy']]\n    }\n\n    with open(f\"{cnn_model.path}/training_history.json\", \"w\") as f:\n        json.dump(history_dict, f, indent=2)\n\n    # Save model metadata\n    cnn_metadata = {\n        **metadata,\n        \"model_type\": \"Personalized_CNN\",\n        \"input_shape\": input_shape,\n        \"epochs_trained\": len(history.history['loss']),\n        \"early_stopping_patience\": 5,\n        \"final_train_accuracy\": float(train_accuracy),\n        \"final_val_accuracy\": float(val_accuracy),\n        \"final_test_accuracy\": float(test_accuracy),\n        \"final_train_loss\": float(train_loss),\n        \"final_val_loss\": float(val_loss),\n        \"final_test_loss\": float(test_loss),\n        \"batch_size\": batch_size,\n        \"personalized_for_user\": user_id,\n        \"architecture\": {\n            \"conv1\": \"32 filters, 3x3, relu\",\n            \"pool1\": \"2x2 maxpool\",\n            \"conv2\": \"64 filters, 3x3, relu\", \n            \"pool2\": \"2x2 maxpool\",\n            \"dense1\": \"128 units, relu\",\n            \"output\": f\"{num_classes} units, softmax\"\n        }\n    }\n\n    with open(f\"{cnn_model.path}/cnn_metadata.json\", \"w\") as f:\n        json.dump(cnn_metadata, f, indent=2)\n\n    # Save label encoder for inference\n    joblib.dump(label_encoder, f\"{cnn_model.path}/label_encoder.pkl\")\n\n    print(f\"\u2705 Personalized CNN training complete for user {user_id}!\")\n    print(f\"\ud83d\udcbe Model saved to: {cnn_model.path}\")\n    print(f\"\ud83d\udcc8 Best validation accuracy: {max(history.history['val_accuracy']):.4f}\")\n    print(f\"\u23f9\ufe0f Training stopped after {len(history.history['loss'])} epochs\")\n\n"
+          ],
+          "image": "gcr.io/deeplearning-platform-release/tf2-gpu.2-11:latest"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "description": "Personalized posture classification pipeline for individual users",
+    "name": "user-specific-posture-pipeline"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "augment-user-posture-data": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-augment-user-posture-data"
+          },
+          "dependentTasks": [
+            "preprocess-user-posture-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "preprocessed_frames": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "preprocessed_frames",
+                  "producerTask": "preprocess-user-posture-data"
+                }
+              }
+            },
+            "parameters": {
+              "sample_size_per_posture": {
+                "componentInputParameter": "augmentation_samples"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "augment-user-posture-data"
+          }
+        },
+        "flatten-and-split-user-data": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-flatten-and-split-user-data"
+          },
+          "dependentTasks": [
+            "normalize-user-posture-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "normalized_frames": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "normalized_frames",
+                  "producerTask": "normalize-user-posture-data"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "flatten-and-split-user-data"
+          }
+        },
+        "normalize-user-posture-data": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-normalize-user-posture-data"
+          },
+          "dependentTasks": [
+            "augment-user-posture-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "augmented_frames": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "augmented_frames",
+                  "producerTask": "augment-user-posture-data"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "normalize-user-posture-data"
+          }
+        },
+        "preprocess-user-posture-data": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-preprocess-user-posture-data"
+          },
+          "inputs": {
+            "parameters": {
+              "bucket_name": {
+                "componentInputParameter": "bucket_name"
+              },
+              "user_id": {
+                "componentInputParameter": "user_id"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "preprocess-user-posture-data"
+          }
+        },
+        "register-user-model": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-register-user-model"
+          },
+          "dependentTasks": [
+            "train-user-cnn-model"
+          ],
+          "inputs": {
+            "artifacts": {
+              "model": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "cnn_model",
+                  "producerTask": "train-user-cnn-model"
+                }
+              }
+            },
+            "parameters": {
+              "user_id": {
+                "componentInputParameter": "user_id"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "register-user-model"
+          }
+        },
+        "train-user-cnn-model": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-train-user-cnn-model"
+          },
+          "dependentTasks": [
+            "flatten-and-split-user-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "train_val_test_data": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "train_val_test_data",
+                  "producerTask": "flatten-and-split-user-data"
+                }
+              }
+            },
+            "parameters": {
+              "batch_size": {
+                "componentInputParameter": "cnn_batch_size"
+              },
+              "epochs": {
+                "componentInputParameter": "cnn_epochs"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "train-user-cnn-model"
+          }
+        }
+      }
+    },
+    "inputDefinitions": {
+      "parameters": {
+        "augmentation_samples": {
+          "defaultValue": 5.0,
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "bucket_name": {
+          "parameterType": "STRING"
+        },
+        "cnn_batch_size": {
+          "defaultValue": 8.0,
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "cnn_epochs": {
+          "defaultValue": 30.0,
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "user_id": {
+          "parameterType": "STRING"
+        }
+      }
+    }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-2.14.6"
+}
