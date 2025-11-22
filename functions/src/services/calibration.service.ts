@@ -17,7 +17,7 @@ export async function isCalibrationComplete(
     const [files] = await bucket.getFiles({ prefix: userFolder });
 
     const existingFiles = files
-      .filter((file) => file.name.endsWith(".csv"))
+      .filter((file) => file.name.endsWith(".npz"))
       .map((file) => file.name.split("/").pop() || "");
 
     console.log(`📁 Existing files for ${userId}:`, existingFiles);

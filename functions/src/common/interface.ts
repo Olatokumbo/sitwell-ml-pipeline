@@ -16,7 +16,6 @@ export interface CalibrationSession {
 }
 
 export interface User {
-  id: string;
   firstName: string;
   lastName: string;
   role: UserRole;

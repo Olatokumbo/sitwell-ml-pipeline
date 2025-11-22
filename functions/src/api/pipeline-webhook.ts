@@ -12,9 +12,9 @@ export const pipelineWebhook = functions.https.onRequest(
     // Verify request is from Google Cloud (implement proper authentication)
 
     try {
-      const { pipelineJobName, state, userId } = req.body;
+      const { state, userId, confmat, gtrace } = req.body;
 
-      console.log(`📢 Pipeline webhook: ${pipelineJobName} - ${state}`);
+      // console.log(`📢 Pipeline webhook: ${pipelineJobName} - ${state}`);
 
       if (state === "PIPELINE_STATE_SUCCEEDED") {
         // Update Firestore
@@ -24,6 +24,8 @@ export const pipelineWebhook = functions.https.onRequest(
           .doc(userId)
           .update({
             status: "training_complete",
+            confmat,
+            gtrace,
             lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
           });
 

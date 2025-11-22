@@ -1,0 +1,862 @@
+{
+  "components": {
+    "comp-augment-user-posture-data": {
+      "executorLabel": "exec-augment-user-posture-data",
+      "inputDefinitions": {
+        "artifacts": {
+          "preprocessed_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "sample_size_per_posture": {
+            "defaultValue": 10.0,
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "augmented_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-normalize-confmat-and-gtrace-data": {
+      "executorLabel": "exec-normalize-confmat-and-gtrace-data",
+      "inputDefinitions": {
+        "artifacts": {
+          "augmented_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "confmat_scaler": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "gtrace_scaler": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "normalized_confmat": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "normalized_gtrace": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-preprocess-user-posture-data": {
+      "executorLabel": "exec-preprocess-user-posture-data",
+      "inputDefinitions": {
+        "parameters": {
+          "bucket_name": {
+            "parameterType": "STRING"
+          },
+          "user_id": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "preprocessed_frames": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-register-user-models": {
+      "executorLabel": "exec-register-user-models",
+      "inputDefinitions": {
+        "artifacts": {
+          "confmat_model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "gtrace_model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "user_id": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "output_dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-split-train-val-test-data": {
+      "executorLabel": "exec-split-train-val-test-data",
+      "inputDefinitions": {
+        "artifacts": {
+          "normalized_confmat": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            },
+            "description": "Normalized ConfMat data from normalization step"
+          },
+          "normalized_gtrace": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            },
+            "description": "Normalized GTrace data from normalization step"
+          }
+        },
+        "parameters": {
+          "random_seed": {
+            "defaultValue": 42.0,
+            "description": "Seed for reproducibility",
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "test_split": {
+            "defaultValue": 0.15,
+            "description": "Proportion for testing (default 0.15 = 15%)",
+            "isOptional": true,
+            "parameterType": "NUMBER_DOUBLE"
+          },
+          "train_split": {
+            "defaultValue": 0.7,
+            "description": "Proportion for training (default 0.7 = 70%)",
+            "isOptional": true,
+            "parameterType": "NUMBER_DOUBLE"
+          },
+          "val_split": {
+            "defaultValue": 0.15,
+            "description": "Proportion for validation (default 0.15 = 15%)",
+            "isOptional": true,
+            "parameterType": "NUMBER_DOUBLE"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "confmat_test": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "confmat_train": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "confmat_val": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "gtrace_test": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "gtrace_train": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "gtrace_val": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-train-confmat-cnn": {
+      "executorLabel": "exec-train-confmat-cnn",
+      "inputDefinitions": {
+        "artifacts": {
+          "confmat_test": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "confmat_train": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "confmat_val": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "batch_size": {
+            "defaultValue": 8.0,
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "epochs": {
+            "defaultValue": 30.0,
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "confmat_cnn_model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-train-gtrace-cnn": {
+      "executorLabel": "exec-train-gtrace-cnn",
+      "inputDefinitions": {
+        "artifacts": {
+          "gtrace_test": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "gtrace_train": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "gtrace_val": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "batch_size": {
+            "defaultValue": 8.0,
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "epochs": {
+            "defaultValue": 30.0,
+            "isOptional": true,
+            "parameterType": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "gtrace_cnn_model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-trigger-webhook": {
+      "executorLabel": "exec-trigger-webhook",
+      "inputDefinitions": {
+        "artifacts": {
+          "model_info": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "user_id": {
+            "parameterType": "STRING"
+          },
+          "webhook_url": {
+            "parameterType": "STRING"
+          }
+        }
+      }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-augment-user-posture-data": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "augment_user_posture_data"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'numpy' 'scipy' 'scikit-image'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef augment_user_posture_data(\n    preprocessed_frames: Input[Dataset],\n    augmented_frames: Output[Dataset],\n    sample_size_per_posture: int = 10\n):\n    \"\"\"Augment user-specific posture data with 4-channel structure\"\"\"\n    import numpy as np\n    import json\n    import os\n    import random\n    from scipy.ndimage import gaussian_filter, map_coordinates, rotate\n\n    # Load user data\n    with open(f\"{preprocessed_frames.path}/all_frames.json\", \"r\") as f:\n        all_frames = json.load(f)\n\n    with open(f\"{preprocessed_frames.path}/metadata.json\", \"r\") as f:\n        metadata = json.load(f)\n\n    user_id = metadata[\"user_id\"]\n    print(f\"\ud83d\udc64 Augmenting data for user: {user_id}\")\n    print(f\"\ud83d\udd04 Creating {sample_size_per_posture} augmented samples per frame...\")\n    print(f\"\ud83d\udcca Original dataset: {len(all_frames)} frames\")\n\n    # Convert to numpy arrays\n    for frame in all_frames:\n        frame[\"conf_back\"] = np.array(frame[\"conf_back\"])\n        frame[\"conf_seat\"] = np.array(frame[\"conf_seat\"])\n        frame[\"gtrace_back\"] = np.array(frame[\"gtrace_back\"])\n        frame[\"gtrace_seat\"] = np.array(frame[\"gtrace_seat\"])\n\n    # Augmentation functions for 2D data\n    def add_noise(data, noise_ratio=0.5):\n        data_std = np.std(data)\n        noise_level = noise_ratio * data_std\n        noise = np.random.normal(0, noise_level, data.shape)\n        return data + noise\n\n    def shift_data(data, shift_max=10):\n        shift_x = np.random.randint(-shift_max, shift_max + 1)\n        shift_y = np.random.randint(-shift_max, shift_max + 1)\n        shifted = np.roll(data, shift_x, axis=0)\n        shifted = np.roll(shifted, shift_y, axis=1)\n        return np.clip(shifted, 0, 255)\n\n    def rotate_data(data, angle):\n        return np.clip(rotate(data, angle, reshape=False), 0, 255)\n\n    def random_erasing(data, erase_prob=0.5, erase_size=0.1):\n        if random.random() < erase_prob:\n            data_copy = data.copy()\n            h, w = data.shape\n            eh = int(h * erase_size)\n            ew = int(w * erase_size)\n            top = np.random.randint(0, h - eh)\n            left = np.random.randint(0, w - ew)\n            data_copy[top:top + eh, left:left + ew] = 0\n            return np.clip(data_copy, 0, 255)\n        return np.clip(data, 0, 255)\n\n    def elastic_transform(data, alpha, sigma):\n        try:\n            random_state = np.random.RandomState(None)\n            shape = data.shape\n            dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha\n            dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha\n            x, y = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), indexing='ij')\n            indices = np.reshape(x + dx, (-1, 1)), np.reshape(y + dy, (-1, 1))\n            transformed = map_coordinates(data, indices, order=1, mode='reflect').reshape(shape)\n            return np.clip(transformed, 0, 255)\n        except:\n            return np.clip(data, 0, 255)\n\n    def complex_augment_data(data, sample_size=10):\n        augmented = []\n        for _ in range(sample_size):\n            d = data.copy()\n            if random.choice([True, False]):\n                d = shift_data(d, shift_max=np.random.randint(1, 6))\n            if random.choice([True, False]):\n                d = rotate_data(d, angle=np.random.uniform(-30, 30))\n            if random.choice([True, False]):\n                d = random_erasing(d)\n            if random.choice([True, False]):\n                d = elastic_transform(d, alpha=24, sigma=4)\n            if random.choice([True, False]):\n                d = add_noise(d)\n            augmented.append(d)\n        return augmented\n\n    def combine_backrest_seat(back, seat):\n        \"\"\"Combine backrest and seat into single array\"\"\"\n        return np.vstack((back, seat))\n\n    # Generate augmented dataset\n    augmented_dataset = []\n\n    for i, frame in enumerate(all_frames):\n        if i % 10 == 0:\n            print(f\"   Processing frame {i+1}/{len(all_frames)}\")\n\n        posture_name = frame[\"posture\"]\n\n        # Combine confMat and gtrace pairs (backrest + seat)\n        conf_combined = combine_backrest_seat(frame[\"conf_back\"], frame[\"conf_seat\"])\n        gtrace_combined = combine_backrest_seat(frame[\"gtrace_back\"], frame[\"gtrace_seat\"])\n\n        # Augment each modality independently\n        conf_augmented = complex_augment_data(conf_combined, sample_size=sample_size_per_posture)\n        gtrace_augmented = complex_augment_data(gtrace_combined, sample_size=sample_size_per_posture)\n\n        # Re-split and store\n        for conf, gtrace in zip(conf_augmented, gtrace_augmented):\n            # Split conf back into backrest and seat\n            mid = conf.shape[0] // 2\n            conf_back = conf[:mid, :]\n            conf_seat = conf[mid:, :]\n\n            # Split gtrace back into backrest and seat\n            mid_g = gtrace.shape[0] // 2\n            gtrace_back = gtrace[:mid_g, :]\n            gtrace_seat = gtrace[mid_g:, :]\n\n            augmented_dataset.append({\n                \"posture\": posture_name,\n                \"conf_back\": conf_back.tolist(),\n                \"conf_seat\": conf_seat.tolist(),\n                \"gtrace_back\": gtrace_back.tolist(),\n                \"gtrace_seat\": gtrace_seat.tolist(),\n                \"user_id\": user_id\n            })\n\n    print(f\"\u2705 Augmentation complete for user {user_id}!\")\n    print(f\"\ud83d\udcca Original dataset size: {len(all_frames)}\")\n    print(f\"\ud83d\udcca Augmented dataset size: {len(augmented_dataset)}\")\n\n    # Count augmented frames per posture\n    posture_counts = {}\n    for frame in augmented_dataset:\n        posture = frame[\"posture\"]\n        posture_counts[posture] = posture_counts.get(posture, 0) + 1\n\n    print(\"\\n\ud83d\udcca Augmented frames per posture:\")\n    for posture in sorted(posture_counts.keys()):\n        print(f\"   {posture}: {posture_counts[posture]} frames\")\n\n    # Convert numpy arrays back to lists for JSON storage\n    for frame in all_frames:\n        frame[\"conf_back\"] = frame[\"conf_back\"].tolist()\n        frame[\"conf_seat\"] = frame[\"conf_seat\"].tolist()\n        frame[\"gtrace_back\"] = frame[\"gtrace_back\"].tolist()\n        frame[\"gtrace_seat\"] = frame[\"gtrace_seat\"].tolist()\n\n    # Save augmented data\n    os.makedirs(augmented_frames.path, exist_ok=True)\n\n    with open(f\"{augmented_frames.path}/original_frames.json\", \"w\") as f:\n        json.dump(all_frames, f)\n\n    with open(f\"{augmented_frames.path}/augmented_frames.json\", \"w\") as f:\n        json.dump(augmented_dataset, f)\n\n    # Save metadata\n    augmentation_metadata = {\n        **metadata,\n        \"original_frame_count\": len(all_frames),\n        \"augmented_frame_count\": len(augmented_dataset),\n        \"augmentation_ratio\": sample_size_per_posture,\n        \"augmented_posture_counts\": posture_counts,\n        \"total_frames_after_augmentation\": len(all_frames) + len(augmented_dataset),\n        \"channels\": [\"conf_back\", \"conf_seat\", \"gtrace_back\", \"gtrace_seat\"]\n    }\n\n    with open(f\"{augmented_frames.path}/augmentation_metadata.json\", \"w\") as f:\n        json.dump(augmentation_metadata, f, indent=2)\n\n    print(f\"\ud83d\udcbe Saved augmented data for user {user_id}\")\n    print(f\"\ud83d\udcc1 Output location: {augmented_frames.path}\")\n\n"
+          ],
+          "image": "python:3.11"
+        }
+      },
+      "exec-normalize-confmat-and-gtrace-data": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "normalize_confmat_and_gtrace_data"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'numpy' 'scikit-learn'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef normalize_confmat_and_gtrace_data(\n    augmented_frames: Input[Dataset],\n    normalized_confmat: Output[Dataset],\n    normalized_gtrace: Output[Dataset],\n    confmat_scaler: Output[Model],\n    gtrace_scaler: Output[Model]\n):\n    \"\"\"Normalize both ConfMat and GTrace data separately for dual CNN training\"\"\"\n    import numpy as np\n    import json\n    import os\n    import pickle\n    from sklearn.preprocessing import StandardScaler\n\n    # Load augmented data\n    with open(f\"{augmented_frames.path}/original_frames.json\", \"r\") as f:\n        original_frames = json.load(f)\n\n    with open(f\"{augmented_frames.path}/augmented_frames.json\", \"r\") as f:\n        augmented_dataset = json.load(f)\n\n    with open(f\"{augmented_frames.path}/augmentation_metadata.json\", \"r\") as f:\n        metadata = json.load(f)\n\n    user_id = metadata[\"user_id\"]\n    print(f\"\ud83d\udc64 Normalizing data for user: {user_id}\")\n    print(f\"\ud83d\udd39 Processing both ConfMat and GTrace modalities\")\n    print(f\"\ud83d\udcca Original frames: {len(original_frames)}\")\n    print(f\"\ud83d\udcca Augmented frames: {len(augmented_dataset)}\")\n\n    # Combine original and augmented frames\n    all_frames = original_frames + augmented_dataset\n    print(f\"\ud83d\udcca Total frames to normalize: {len(all_frames)}\")\n\n    # Get original dimensions from first frame\n    sample_frame = all_frames[0]\n    conf_back_shape = np.array(sample_frame[\"conf_back\"]).shape\n    conf_seat_shape = np.array(sample_frame[\"conf_seat\"]).shape\n    gtrace_back_shape = np.array(sample_frame[\"gtrace_back\"]).shape\n    gtrace_seat_shape = np.array(sample_frame[\"gtrace_seat\"]).shape\n\n    conf_back_size = conf_back_shape[0] * conf_back_shape[1]\n    conf_seat_size = conf_seat_shape[0] * conf_seat_shape[1]\n    gtrace_back_size = gtrace_back_shape[0] * gtrace_back_shape[1]\n    gtrace_seat_size = gtrace_seat_shape[0] * gtrace_seat_shape[1]\n\n    print(f\"\\n\ud83d\udcd0 Channel dimensions:\")\n    print(f\"   ConfMat: conf_back {conf_back_shape}, conf_seat {conf_seat_shape}\")\n    print(f\"   GTrace: gtrace_back {gtrace_back_shape}, gtrace_seat {gtrace_seat_shape}\")\n\n    # ========================================\n    # NORMALIZE CONFMAT DATA\n    # ========================================\n    print(f\"\\n{'='*60}\")\n    print(f\"\ud83d\udd39 NORMALIZING CONFMAT DATA\")\n    print(f\"{'='*60}\")\n\n    all_confmat_data = []\n    for frame in all_frames:\n        conf_back_flat = np.array(frame[\"conf_back\"]).flatten()\n        conf_seat_flat = np.array(frame[\"conf_seat\"]).flatten()\n        combined = np.concatenate([conf_back_flat, conf_seat_flat])\n        all_confmat_data.append(combined)\n\n    all_confmat_data = np.array(all_confmat_data)\n    print(f\"\ud83d\udcd0 ConfMat data shape: {all_confmat_data.shape}\")\n\n    # Fit StandardScaler on ConfMat data\n    confmat_scaler_model = StandardScaler()\n    normalized_confmat_data = confmat_scaler_model.fit_transform(all_confmat_data)\n\n    print(f\"\u2705 ConfMat normalization complete!\")\n    print(f\"\ud83d\udcca Mean: {normalized_confmat_data.mean():.6f}, Std: {normalized_confmat_data.std():.6f}\")\n\n    # Reshape normalized ConfMat data\n    normalized_confmat_frames = []\n    for i, norm_vector in enumerate(normalized_confmat_data):\n        conf_back = norm_vector[:conf_back_size].reshape(conf_back_shape)\n        conf_seat = norm_vector[conf_back_size:].reshape(conf_seat_shape)\n\n        normalized_confmat_frames.append({\n            \"posture\": all_frames[i][\"posture\"],\n            \"conf_back\": conf_back.tolist(),\n            \"conf_seat\": conf_seat.tolist(),\n            \"user_id\": user_id\n        })\n\n    # Count ConfMat frames per posture\n    confmat_posture_counts = {}\n    for frame in normalized_confmat_frames:\n        posture = frame[\"posture\"]\n        confmat_posture_counts[posture] = confmat_posture_counts.get(posture, 0) + 1\n\n    print(f\"\\n\ud83d\udcca Normalized ConfMat frames per posture:\")\n    for posture in sorted(confmat_posture_counts.keys()):\n        print(f\"   {posture}: {confmat_posture_counts[posture]} frames\")\n\n    # ========================================\n    # NORMALIZE GTRACE DATA\n    # ========================================\n    print(f\"\\n{'='*60}\")\n    print(f\"\ud83d\udd39 NORMALIZING GTRACE DATA\")\n    print(f\"{'='*60}\")\n\n    all_gtrace_data = []\n    for frame in all_frames:\n        gtrace_back_flat = np.array(frame[\"gtrace_back\"]).flatten()\n        gtrace_seat_flat = np.array(frame[\"gtrace_seat\"]).flatten()\n        combined = np.concatenate([gtrace_back_flat, gtrace_seat_flat])\n        all_gtrace_data.append(combined)\n\n    all_gtrace_data = np.array(all_gtrace_data)\n    print(f\"\ud83d\udcd0 GTrace data shape: {all_gtrace_data.shape}\")\n\n    # Fit StandardScaler on GTrace data\n    gtrace_scaler_model = StandardScaler()\n    normalized_gtrace_data = gtrace_scaler_model.fit_transform(all_gtrace_data)\n\n    print(f\"\u2705 GTrace normalization complete!\")\n    print(f\"\ud83d\udcca Mean: {normalized_gtrace_data.mean():.6f}, Std: {normalized_gtrace_data.std():.6f}\")\n\n    # Reshape normalized GTrace data\n    normalized_gtrace_frames = []\n    for i, norm_vector in enumerate(normalized_gtrace_data):\n        gtrace_back = norm_vector[:gtrace_back_size].reshape(gtrace_back_shape)\n        gtrace_seat = norm_vector[gtrace_back_size:].reshape(gtrace_seat_shape)\n\n        normalized_gtrace_frames.append({\n            \"posture\": all_frames[i][\"posture\"],\n            \"gtrace_back\": gtrace_back.tolist(),\n            \"gtrace_seat\": gtrace_seat.tolist(),\n            \"user_id\": user_id\n        })\n\n    # Count GTrace frames per posture\n    gtrace_posture_counts = {}\n    for frame in normalized_gtrace_frames:\n        posture = frame[\"posture\"]\n        gtrace_posture_counts[posture] = gtrace_posture_counts.get(posture, 0) + 1\n\n    print(f\"\\n\ud83d\udcca Normalized GTrace frames per posture:\")\n    for posture in sorted(gtrace_posture_counts.keys()):\n        print(f\"   {posture}: {gtrace_posture_counts[posture]} frames\")\n\n    # ========================================\n    # SAVE CONFMAT DATA\n    # ========================================\n    os.makedirs(normalized_confmat.path, exist_ok=True)\n\n    with open(f\"{normalized_confmat.path}/normalized_confmat_frames.json\", \"w\") as f:\n        json.dump(normalized_confmat_frames, f)\n\n    confmat_metadata = {\n        **metadata,\n        \"modality\": \"confmat\",\n        \"channels\": [\"conf_back\", \"conf_seat\"],\n        \"normalized_frame_count\": len(normalized_confmat_frames),\n        \"posture_counts\": confmat_posture_counts,\n        \"scaler_type\": \"StandardScaler\",\n        \"feature_vector_size\": all_confmat_data.shape[1],\n        \"channel_sizes\": {\"conf_back\": conf_back_size, \"conf_seat\": conf_seat_size},\n        \"channel_shapes\": {\"conf_back\": list(conf_back_shape), \"conf_seat\": list(conf_seat_shape)},\n        \"normalization_stats\": {\n            \"mean\": float(normalized_confmat_data.mean()),\n            \"std\": float(normalized_confmat_data.std()),\n            \"min\": float(normalized_confmat_data.min()),\n            \"max\": float(normalized_confmat_data.max())\n        }\n    }\n\n    with open(f\"{normalized_confmat.path}/confmat_metadata.json\", \"w\") as f:\n        json.dump(confmat_metadata, f, indent=2)\n\n    # Save ConfMat scaler\n    os.makedirs(confmat_scaler.path, exist_ok=True)\n    with open(f\"{confmat_scaler.path}/confmat_scaler.pkl\", \"wb\") as f:\n        pickle.dump(confmat_scaler_model, f)\n\n    confmat_scaler_metadata = {\n        \"user_id\": user_id,\n        \"modality\": \"confmat\",\n        \"scaler_type\": \"StandardScaler\",\n        \"n_features\": all_confmat_data.shape[1],\n        \"n_samples_fit\": all_confmat_data.shape[0],\n        \"mean\": confmat_scaler_model.mean_.tolist(),\n        \"scale\": confmat_scaler_model.scale_.tolist(),\n        \"var\": confmat_scaler_model.var_.tolist()\n    }\n\n    with open(f\"{confmat_scaler.path}/confmat_scaler_metadata.json\", \"w\") as f:\n        json.dump(confmat_scaler_metadata, f, indent=2)\n\n    # ========================================\n    # SAVE GTRACE DATA\n    # ========================================\n    os.makedirs(normalized_gtrace.path, exist_ok=True)\n\n    with open(f\"{normalized_gtrace.path}/normalized_gtrace_frames.json\", \"w\") as f:\n        json.dump(normalized_gtrace_frames, f)\n\n    gtrace_metadata = {\n        **metadata,\n        \"modality\": \"gtrace\",\n        \"channels\": [\"gtrace_back\", \"gtrace_seat\"],\n        \"normalized_frame_count\": len(normalized_gtrace_frames),\n        \"posture_counts\": gtrace_posture_counts,\n        \"scaler_type\": \"StandardScaler\",\n        \"feature_vector_size\": all_gtrace_data.shape[1],\n        \"channel_sizes\": {\"gtrace_back\": gtrace_back_size, \"gtrace_seat\": gtrace_seat_size},\n        \"channel_shapes\": {\"gtrace_back\": list(gtrace_back_shape), \"gtrace_seat\": list(gtrace_seat_shape)},\n        \"normalization_stats\": {\n            \"mean\": float(normalized_gtrace_data.mean()),\n            \"std\": float(normalized_gtrace_data.std()),\n            \"min\": float(normalized_gtrace_data.min()),\n            \"max\": float(normalized_gtrace_data.max())\n        }\n    }\n\n    with open(f\"{normalized_gtrace.path}/gtrace_metadata.json\", \"w\") as f:\n        json.dump(gtrace_metadata, f, indent=2)\n\n    # Save GTrace scaler\n    os.makedirs(gtrace_scaler.path, exist_ok=True)\n    with open(f\"{gtrace_scaler.path}/gtrace_scaler.pkl\", \"wb\") as f:\n        pickle.dump(gtrace_scaler_model, f)\n\n    gtrace_scaler_metadata = {\n        \"user_id\": user_id,\n        \"modality\": \"gtrace\",\n        \"scaler_type\": \"StandardScaler\",\n        \"n_features\": all_gtrace_data.shape[1],\n        \"n_samples_fit\": all_gtrace_data.shape[0],\n        \"mean\": gtrace_scaler_model.mean_.tolist(),\n        \"scale\": gtrace_scaler_model.scale_.tolist(),\n        \"var\": gtrace_scaler_model.var_.tolist()\n    }\n\n    with open(f\"{gtrace_scaler.path}/gtrace_scaler_metadata.json\", \"w\") as f:\n        json.dump(gtrace_scaler_metadata, f, indent=2)\n\n    print(f\"\\n{'='*60}\")\n    print(f\"\u2705 NORMALIZATION COMPLETE FOR USER {user_id}\")\n    print(f\"{'='*60}\")\n    print(f\"\ud83d\udcbe ConfMat: {len(normalized_confmat_frames)} frames saved\")\n    print(f\"\ud83d\udcbe GTrace: {len(normalized_gtrace_frames)} frames saved\")\n    print(f\"\ud83d\udcbe ConfMat scaler: {confmat_scaler.path}\")\n    print(f\"\ud83d\udcbe GTrace scaler: {gtrace_scaler.path}\")\n\n"
+          ],
+          "image": "python:3.11",
+          "resources": {
+            "cpuLimit": 4.0,
+            "cpuRequest": 2.0,
+            "memoryLimit": 32.0,
+            "memoryRequest": 8.0,
+            "resourceCpuLimit": "4",
+            "resourceCpuRequest": "2",
+            "resourceMemoryLimit": "32G",
+            "resourceMemoryRequest": "8G"
+          }
+        }
+      },
+      "exec-preprocess-user-posture-data": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "preprocess_user_posture_data"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'google-cloud-storage' 'pandas' 'numpy'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef preprocess_user_posture_data(\n    bucket_name: str,\n    user_id: str,\n    preprocessed_frames: Output[Dataset]\n):\n    \"\"\"Load and preprocess NPZ files for a specific user\"\"\"\n    from google.cloud import storage\n    import numpy as np\n    import json\n    import os\n\n    print(f\"\ud83d\udc64 Processing calibration data for user: {user_id}\")\n    print(f\"\ud83d\udd0d Loading data from bucket: {bucket_name}\")\n\n    # Connect to Cloud Storage\n    client = storage.Client()\n    bucket = client.bucket(bucket_name)\n\n    # Find NPZ files for this specific user\n    user_prefix = f\"users/{user_id}/posture_data\"\n    blobs = list(bucket.list_blobs(prefix=user_prefix))\n    npz_files = [blob.name for blob in blobs if blob.name.endswith('.npz')]\n\n    print(f\"\ud83d\udcc1 Found {len(npz_files)} NPZ files for {user_id}:\")\n    for file in npz_files:\n        print(f\"   \ud83d\udcc4 {file}\")\n\n    if len(npz_files) == 0:\n        raise ValueError(f\"No NPZ files found for user {user_id} in {user_prefix}\")\n\n    # Expected posture codes\n    expected_postures = [f\"SP{i:02d}\" for i in range(1, 20)]  # SP01 to SP19\n\n    # Download and process each NPZ file\n    os.makedirs(\"./temp_data\", exist_ok=True)\n    all_frames = []\n    posture_counts = {}\n\n    for blob_name in npz_files:\n        # Extract posture code from filename (e.g., \"SP01.npz\" -> \"SP01\")\n        filename = os.path.basename(blob_name)\n        posture_code = filename.replace('.npz', '')\n\n        # Skip if not a recognized posture\n        if posture_code not in expected_postures:\n            print(f\"   \u26a0\ufe0f  Skipping unrecognized file: {filename}\")\n            continue\n\n        # Download NPZ file\n        local_npz_path = f\"./temp_data/{filename}\"\n        blob = bucket.blob(blob_name)\n        blob.download_to_filename(local_npz_path)\n\n        print(f\"\ud83d\udce5 Processing {posture_code}...\")\n\n        # Load NPZ file\n        npz_data = np.load(local_npz_path, allow_pickle=True)\n\n        # Extract data array - adjust key based on your NPZ structure\n        # Common possibilities: 'data', 'arr_0', or the actual array\n        if 'data' in npz_data:\n            data_array = npz_data['data']\n        elif 'arr_0' in npz_data:\n            data_array = npz_data['arr_0']\n        else:\n            # Take the first available array\n            data_array = npz_data[list(npz_data.keys())[0]]\n\n        # Verify shape: should be (time, sensor, rows, cols)\n        if len(data_array.shape) != 4:\n            print(f\"   \u26a0\ufe0f  Warning: Unexpected shape {data_array.shape} for {posture_code}\")\n\n        num_frames = data_array.shape[0]\n        print(f\"   \ud83d\udd04 Extracting {num_frames} frames from {posture_code}...\")\n\n        # Extract frames for this posture\n        for t in range(num_frames):\n            all_frames.append({\n                \"posture\": posture_code,\n                \"conf_back\": data_array[t, 0, :, :].tolist(),   # ConfMat_Back\n                \"conf_seat\": data_array[t, 1, :, :].tolist(),   # ConfMat_Seat\n                \"gtrace_back\": data_array[t, 2, :, :].tolist(), # GTrace_Back\n                \"gtrace_seat\": data_array[t, 3, :, :].tolist(), # GTrace_Seat\n                \"user_id\": user_id\n            })\n\n        posture_counts[posture_code] = num_frames\n        print(f\"   \u2705 Processed {posture_code}: {num_frames} frames\")\n\n        # Close NPZ file\n        npz_data.close()\n\n    print(f\"\\n\ud83c\udf89 Total frames processed for {user_id}: {len(all_frames)}\")\n\n    # Display summary\n    print(\"\\n\ud83d\udcca Frames per posture:\")\n    for posture in sorted(posture_counts.keys()):\n        count = posture_counts[posture]\n        print(f\"   {posture}: {count} frames\")\n\n    # Check for missing postures\n    found_postures = set(posture_counts.keys())\n    missing_postures = set(expected_postures) - found_postures\n    if missing_postures:\n        print(f\"\\n\u26a0\ufe0f  Missing postures: {sorted(missing_postures)}\")\n\n    # Save processed frames\n    os.makedirs(preprocessed_frames.path, exist_ok=True)\n\n    with open(f\"{preprocessed_frames.path}/all_frames.json\", \"w\") as f:\n        json.dump(all_frames, f)\n\n    # Get sensor dimensions from the first frame\n    if all_frames:\n        sensor_rows = len(all_frames[0][\"conf_back\"])\n        sensor_cols = len(all_frames[0][\"conf_back\"][0])\n    else:\n        sensor_rows, sensor_cols = 32, 32  # Default assumption\n\n    # Save metadata with user info\n    metadata = {\n        \"user_id\": user_id,\n        \"total_frames\": len(all_frames),\n        \"posture_counts\": posture_counts,\n        \"num_postures\": len(posture_counts),\n        \"expected_postures\": expected_postures,\n        \"found_postures\": sorted(list(found_postures)),\n        \"missing_postures\": sorted(list(missing_postures)),\n        \"sensor_channels\": 4,  # conf_back, conf_seat, gtrace_back, gtrace_seat\n        \"sensor_dimensions\": f\"{sensor_rows}x{sensor_cols}\",\n        \"posture_timestamp\": str(np.datetime64('now')),\n        \"frame_structure\": {\n            \"conf_back\": f\"ConfMat_Back pressure sensors ({sensor_rows}x{sensor_cols})\",\n            \"conf_seat\": f\"ConfMat_Seat pressure sensors ({sensor_rows}x{sensor_cols})\", \n            \"gtrace_back\": f\"GTrace_Back sensors ({sensor_rows}x{sensor_cols})\",\n            \"gtrace_seat\": f\"GTrace_Seat sensors ({sensor_rows}x{sensor_cols})\",\n            \"posture\": \"User-specific posture classification (SP01-SP19)\"\n        }\n    }\n\n    with open(f\"{preprocessed_frames.path}/metadata.json\", \"w\") as f:\n        json.dump(metadata, f, indent=2)\n\n    print(\"\\n\u2705 User-specific preprocessing complete!\")\n    print(f\"\ud83d\udcbe Saved {len(all_frames)} processed frames for user {user_id}\")\n    print(f\"\ud83d\udcc1 Output location: {preprocessed_frames.path}\")\n\n"
+          ],
+          "image": "python:3.11"
+        }
+      },
+      "exec-register-user-models": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "register_user_models"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef register_user_models(\n    user_id: str,\n    gtrace_model: Input[Model],\n    confmat_model: Input[Model],\n    output_dataset: Output[Dataset],\n):\n    \"\"\"Registers both GTrace and ConfMat models for a specific user.\"\"\"\n    from google.cloud import aiplatform\n    import os\n    import json\n\n    project = os.getenv(\"GCLOUD_PROJECT_ID\")\n    region = os.getenv(\"GCLOUD_REGION\")\n\n    aiplatform.init(project=project, location=region)\n\n    # Register the GTrace model\n    gtrace_model = aiplatform.Model.upload(\n        display_name=f\"user_{user_id}_gtrace_model\",\n        artifact_uri=gtrace_model.uri,\n        serving_container_image_uri=\"us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-12:latest\",\n        description=f\"GTrace CNN model for user {user_id}\"\n    )\n\n    # Register the ConfMat model\n    confmat_model = aiplatform.Model.upload(\n        display_name=f\"user_{user_id}_confmat_model\",\n        artifact_uri=confmat_model.uri,\n        serving_container_image_uri=\"us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-12:latest\",\n        description=f\"ConfMat CNN model for user {user_id}\"\n    )\n\n    # Deploy both models to endpoints\n    gtrace_endpoint = gtrace_model.deploy(\n        deployed_model_display_name=f\"user_{user_id}_gtrace_endpoint\",\n        machine_type=\"e2-standard-2\",\n    )\n\n    confmat_endpoint = confmat_model.deploy(\n        deployed_model_display_name=f\"user_{user_id}_confmat_endpoint\",\n        machine_type=\"e2-standard-2\",\n    )\n\n    # Store everything for downstream use\n    model_info = {\n        \"user_id\": user_id,\n        \"gtrace_model_id\": gtrace_model.resource_name,\n        \"confmat_model_id\": confmat_model.resource_name,\n        \"gtrace_endpoint_id\": gtrace_endpoint.resource_name,\n        \"confmat_endpoint_id\": confmat_endpoint.resource_name,\n    }\n\n    with open(output_dataset.path, \"w\") as f:\n        json.dump(model_info, f)\n\n"
+          ],
+          "image": "python:3.11"
+        }
+      },
+      "exec-split-train-val-test-data": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "split_train_val_test_data"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'numpy' 'scikit-learn'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef split_train_val_test_data(\n    normalized_confmat: Input[Dataset],\n    normalized_gtrace: Input[Dataset],\n    confmat_train: Output[Dataset],\n    confmat_val: Output[Dataset],\n    confmat_test: Output[Dataset],\n    gtrace_train: Output[Dataset],\n    gtrace_val: Output[Dataset],\n    gtrace_test: Output[Dataset],\n    train_split: float = 0.7,\n    val_split: float = 0.15,\n    test_split: float = 0.15,\n    random_seed: int = 42\n):\n    \"\"\"\n    Split both ConfMat and GTrace normalized data into stratified train/validation/test sets.\n\n    This ensures:\n    - Same random seed for reproducibility across both modalities\n    - Stratified split (proportional representation of each posture class)\n    - Separate datasets for training two independent CNN models\n\n    Args:\n        normalized_confmat: Normalized ConfMat data from normalization step\n        normalized_gtrace: Normalized GTrace data from normalization step\n        confmat_train/val/test: Output datasets for ConfMat CNN\n        gtrace_train/val/test: Output datasets for GTrace CNN\n        train_split: Proportion for training (default 0.7 = 70%)\n        val_split: Proportion for validation (default 0.15 = 15%)\n        test_split: Proportion for testing (default 0.15 = 15%)\n        random_seed: Seed for reproducibility\n    \"\"\"\n    import numpy as np\n    import json\n    import os\n\n    # ========================================\n    # VALIDATE SPLIT RATIOS\n    # ========================================\n    total_split = train_split + val_split + test_split\n    if not np.isclose(total_split, 1.0):\n        raise ValueError(f\"Split ratios must sum to 1.0, got {total_split}\")\n\n    print(f\"\\n{'='*60}\")\n    print(f\"TRAIN/VAL/TEST SPLIT\")\n    print(f\"{'='*60}\")\n    print(f\"\ud83c\udfaf Split ratios:\")\n    print(f\"   Train: {train_split*100:.1f}%\")\n    print(f\"   Validation: {val_split*100:.1f}%\")\n    print(f\"   Test: {test_split*100:.1f}%\")\n    print(f\"\ud83c\udf31 Random seed: {random_seed}\")\n\n    # ========================================\n    # HELPER FUNCTION: STRATIFIED SPLIT\n    # ========================================\n    def stratified_split(frames, train_ratio, val_ratio, test_ratio, seed):\n        \"\"\"Perform stratified split by posture class\"\"\"\n        # Group frames by posture\n        posture_groups = {}\n        for frame in frames:\n            posture = frame[\"posture\"]\n            if posture not in posture_groups:\n                posture_groups[posture] = []\n            posture_groups[posture].append(frame)\n\n        train_frames = []\n        val_frames = []\n        test_frames = []\n\n        np.random.seed(seed)\n\n        print(f\"\\n   Splitting by posture:\")\n        for posture in sorted(posture_groups.keys()):\n            frames_in_posture = posture_groups[posture]\n            n_frames = len(frames_in_posture)\n\n            # Shuffle frames for this posture\n            indices = np.random.permutation(n_frames)\n            shuffled = [frames_in_posture[i] for i in indices]\n\n            # Calculate split indices\n            train_end = int(n_frames * train_ratio)\n            val_end = train_end + int(n_frames * val_ratio)\n\n            # Split\n            train_posture = shuffled[:train_end]\n            val_posture = shuffled[train_end:val_end]\n            test_posture = shuffled[val_end:]\n\n            train_frames.extend(train_posture)\n            val_frames.extend(val_posture)\n            test_frames.extend(test_posture)\n\n            print(f\"      {posture}: {len(train_posture)} train, {len(val_posture)} val, {len(test_posture)} test\")\n\n        # Shuffle combined datasets\n        np.random.shuffle(train_frames)\n        np.random.shuffle(val_frames)\n        np.random.shuffle(test_frames)\n\n        return train_frames, val_frames, test_frames\n\n    # ========================================\n    # HELPER FUNCTION: COUNT POSTURES\n    # ========================================\n    def count_postures(frames):\n        \"\"\"Count frames per posture\"\"\"\n        counts = {}\n        for frame in frames:\n            posture = frame[\"posture\"]\n            counts[posture] = counts.get(posture, 0) + 1\n        return counts\n\n    # ========================================\n    # SPLIT CONFMAT DATA\n    # ========================================\n    print(f\"\\n{'='*60}\")\n    print(f\"\ud83d\udd39 CONFMAT DATA SPLIT\")\n    print(f\"{'='*60}\")\n\n    # Load ConfMat data\n    with open(f\"{normalized_confmat.path}/normalized_confmat_frames.json\", \"r\") as f:\n        confmat_frames = json.load(f)\n\n    with open(f\"{normalized_confmat.path}/confmat_metadata.json\", \"r\") as f:\n        confmat_metadata = json.load(f)\n\n    user_id = confmat_metadata[\"user_id\"]\n    print(f\"\ud83d\udc64 User: {user_id}\")\n    print(f\"\ud83d\udcca Total ConfMat frames: {len(confmat_frames)}\")\n\n    # Perform stratified split\n    confmat_train_frames, confmat_val_frames, confmat_test_frames = stratified_split(\n        confmat_frames, train_split, val_split, test_split, random_seed\n    )\n\n    print(f\"\\n\u2705 ConfMat split complete:\")\n    print(f\"   \ud83d\udcca Train: {len(confmat_train_frames)} frames ({len(confmat_train_frames)/len(confmat_frames)*100:.1f}%)\")\n    print(f\"   \ud83d\udcca Val: {len(confmat_val_frames)} frames ({len(confmat_val_frames)/len(confmat_frames)*100:.1f}%)\")\n    print(f\"   \ud83d\udcca Test: {len(confmat_test_frames)} frames ({len(confmat_test_frames)/len(confmat_frames)*100:.1f}%)\")\n\n    # Count postures in each split\n    confmat_train_counts = count_postures(confmat_train_frames)\n    confmat_val_counts = count_postures(confmat_val_frames)\n    confmat_test_counts = count_postures(confmat_test_frames)\n\n    # ========================================\n    # SPLIT GTRACE DATA\n    # ========================================\n    print(f\"\\n{'='*60}\")\n    print(f\"\ud83d\udd39 GTRACE DATA SPLIT\")\n    print(f\"{'='*60}\")\n\n    # Load GTrace data\n    with open(f\"{normalized_gtrace.path}/normalized_gtrace_frames.json\", \"r\") as f:\n        gtrace_frames = json.load(f)\n\n    with open(f\"{normalized_gtrace.path}/gtrace_metadata.json\", \"r\") as f:\n        gtrace_metadata = json.load(f)\n\n    print(f\"\ud83d\udc64 User: {user_id}\")\n    print(f\"\ud83d\udcca Total GTrace frames: {len(gtrace_frames)}\")\n\n    # Perform stratified split\n    gtrace_train_frames, gtrace_val_frames, gtrace_test_frames = stratified_split(\n        gtrace_frames, train_split, val_split, test_split, random_seed\n    )\n\n    print(f\"\\n\u2705 GTrace split complete:\")\n    print(f\"   \ud83d\udcca Train: {len(gtrace_train_frames)} frames ({len(gtrace_train_frames)/len(gtrace_frames)*100:.1f}%)\")\n    print(f\"   \ud83d\udcca Val: {len(gtrace_val_frames)} frames ({len(gtrace_val_frames)/len(gtrace_frames)*100:.1f}%)\")\n    print(f\"   \ud83d\udcca Test: {len(gtrace_test_frames)} frames ({len(gtrace_test_frames)/len(gtrace_frames)*100:.1f}%)\")\n\n    # Count postures in each split\n    gtrace_train_counts = count_postures(gtrace_train_frames)\n    gtrace_val_counts = count_postures(gtrace_val_frames)\n    gtrace_test_counts = count_postures(gtrace_test_frames)\n\n    # ========================================\n    # SAVE CONFMAT TRAIN DATA\n    # ========================================\n    print(f\"\\n\ud83d\udcbe Saving ConfMat splits...\")\n\n    os.makedirs(confmat_train.path, exist_ok=True)\n    with open(f\"{confmat_train.path}/confmat_train_frames.json\", \"w\") as f:\n        json.dump(confmat_train_frames, f)\n\n    confmat_train_metadata = {\n        **confmat_metadata,\n        \"split_type\": \"train\",\n        \"n_frames\": len(confmat_train_frames),\n        \"split_ratio\": train_split,\n        \"posture_counts\": confmat_train_counts,\n        \"random_seed\": random_seed\n    }\n    with open(f\"{confmat_train.path}/confmat_train_metadata.json\", \"w\") as f:\n        json.dump(confmat_train_metadata, f, indent=2)\n\n    # ========================================\n    # SAVE CONFMAT VAL DATA\n    # ========================================\n    os.makedirs(confmat_val.path, exist_ok=True)\n    with open(f\"{confmat_val.path}/confmat_val_frames.json\", \"w\") as f:\n        json.dump(confmat_val_frames, f)\n\n    confmat_val_metadata = {\n        **confmat_metadata,\n        \"split_type\": \"validation\",\n        \"n_frames\": len(confmat_val_frames),\n        \"split_ratio\": val_split,\n        \"posture_counts\": confmat_val_counts,\n        \"random_seed\": random_seed\n    }\n    with open(f\"{confmat_val.path}/confmat_val_metadata.json\", \"w\") as f:\n        json.dump(confmat_val_metadata, f, indent=2)\n\n    # ========================================\n    # SAVE CONFMAT TEST DATA\n    # ========================================\n    os.makedirs(confmat_test.path, exist_ok=True)\n    with open(f\"{confmat_test.path}/confmat_test_frames.json\", \"w\") as f:\n        json.dump(confmat_test_frames, f)\n\n    confmat_test_metadata = {\n        **confmat_metadata,\n        \"split_type\": \"test\",\n        \"n_frames\": len(confmat_test_frames),\n        \"split_ratio\": test_split,\n        \"posture_counts\": confmat_test_counts,\n        \"random_seed\": random_seed\n    }\n    with open(f\"{confmat_test.path}/confmat_test_metadata.json\", \"w\") as f:\n        json.dump(confmat_test_metadata, f, indent=2)\n\n    # ========================================\n    # SAVE GTRACE TRAIN DATA\n    # ========================================\n    print(f\"\ud83d\udcbe Saving GTrace splits...\")\n\n    os.makedirs(gtrace_train.path, exist_ok=True)\n    with open(f\"{gtrace_train.path}/gtrace_train_frames.json\", \"w\") as f:\n        json.dump(gtrace_train_frames, f)\n\n    gtrace_train_metadata = {\n        **gtrace_metadata,\n        \"split_type\": \"train\",\n        \"n_frames\": len(gtrace_train_frames),\n        \"split_ratio\": train_split,\n        \"posture_counts\": gtrace_train_counts,\n        \"random_seed\": random_seed\n    }\n    with open(f\"{gtrace_train.path}/gtrace_train_metadata.json\", \"w\") as f:\n        json.dump(gtrace_train_metadata, f, indent=2)\n\n    # ========================================\n    # SAVE GTRACE VAL DATA\n    # ========================================\n    os.makedirs(gtrace_val.path, exist_ok=True)\n    with open(f\"{gtrace_val.path}/gtrace_val_frames.json\", \"w\") as f:\n        json.dump(gtrace_val_frames, f)\n\n    gtrace_val_metadata = {\n        **gtrace_metadata,\n        \"split_type\": \"validation\",\n        \"n_frames\": len(gtrace_val_frames),\n        \"split_ratio\": val_split,\n        \"posture_counts\": gtrace_val_counts,\n        \"random_seed\": random_seed\n    }\n    with open(f\"{gtrace_val.path}/gtrace_val_metadata.json\", \"w\") as f:\n        json.dump(gtrace_val_metadata, f, indent=2)\n\n    # ========================================\n    # SAVE GTRACE TEST DATA\n    # ========================================\n    os.makedirs(gtrace_test.path, exist_ok=True)\n    with open(f\"{gtrace_test.path}/gtrace_test_frames.json\", \"w\") as f:\n        json.dump(gtrace_test_frames, f)\n\n    gtrace_test_metadata = {\n        **gtrace_metadata,\n        \"split_type\": \"test\",\n        \"n_frames\": len(gtrace_test_frames),\n        \"split_ratio\": test_split,\n        \"posture_counts\": gtrace_test_counts,\n        \"random_seed\": random_seed\n    }\n    with open(f\"{gtrace_test.path}/gtrace_test_metadata.json\", \"w\") as f:\n        json.dump(gtrace_test_metadata, f, indent=2)\n\n    # ========================================\n    # CREATE SUMMARY\n    # ========================================\n    summary = {\n        \"user_id\": user_id,\n        \"random_seed\": random_seed,\n        \"split_ratios\": {\n            \"train\": train_split,\n            \"validation\": val_split,\n            \"test\": test_split\n        },\n        \"confmat\": {\n            \"total_frames\": len(confmat_frames),\n            \"train\": {\"n_frames\": len(confmat_train_frames), \"posture_counts\": confmat_train_counts},\n            \"validation\": {\"n_frames\": len(confmat_val_frames), \"posture_counts\": confmat_val_counts},\n            \"test\": {\"n_frames\": len(confmat_test_frames), \"posture_counts\": confmat_test_counts}\n        },\n        \"gtrace\": {\n            \"total_frames\": len(gtrace_frames),\n            \"train\": {\"n_frames\": len(gtrace_train_frames), \"posture_counts\": gtrace_train_counts},\n            \"validation\": {\"n_frames\": len(gtrace_val_frames), \"posture_counts\": gtrace_val_counts},\n            \"test\": {\"n_frames\": len(gtrace_test_frames), \"posture_counts\": gtrace_test_counts}\n        }\n    }\n\n    # Save summary to all output directories\n    for path in [confmat_train.path, confmat_val.path, confmat_test.path,\n                 gtrace_train.path, gtrace_val.path, gtrace_test.path]:\n        with open(f\"{path}/split_summary.json\", \"w\") as f:\n            json.dump(summary, f, indent=2)\n\n    print(f\"\\n{'='*60}\")\n    print(f\"\u2705 SPLIT COMPLETE FOR USER {user_id}\")\n    print(f\"{'='*60}\")\n    print(f\"\u2728 ConfMat datasets ready for CNN training\")\n    print(f\"\u2728 GTrace datasets ready for CNN training\")\n    print(f\"\ud83d\udcc1 All splits saved with metadata and summary\")\n\n"
+          ],
+          "image": "python:3.11"
+        }
+      },
+      "exec-train-confmat-cnn": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "train_confmat_cnn"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train_confmat_cnn(\n    confmat_train: Input[Dataset],\n    confmat_val: Input[Dataset],\n    confmat_test: Input[Dataset],\n    confmat_cnn_model: Output[Model],\n    epochs: int = 30,\n    batch_size: int = 8\n):\n    \"\"\"Train CNN model for ConfMat sensor data (conf_back + conf_seat)\"\"\"\n    import numpy as np\n    import json\n    import os\n    import tensorflow as tf\n    from tensorflow.keras import layers, models\n    from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau\n    from tensorflow.keras.utils import to_categorical\n    from sklearn.metrics import classification_report, confusion_matrix\n\n    print(f\"{'='*60}\")\n    print(f\"CONFMAT CNN TRAINING\")\n    print(f\"{'='*60}\")\n\n    # Load train data\n    with open(f\"{confmat_train.path}/confmat_train_frames.json\", \"r\") as f:\n        train_frames = json.load(f)\n    with open(f\"{confmat_train.path}/confmat_train_metadata.json\", \"r\") as f:\n        train_metadata = json.load(f)\n\n    # Load validation data\n    with open(f\"{confmat_val.path}/confmat_val_frames.json\", \"r\") as f:\n        val_frames = json.load(f)\n\n    # Load test data\n    with open(f\"{confmat_test.path}/confmat_test_frames.json\", \"r\") as f:\n        test_frames = json.load(f)\n\n    user_id = train_metadata[\"user_id\"]\n    print(f\"\ud83d\udc64 Training ConfMat CNN for user: {user_id}\")\n    print(f\"\ud83d\udcca Train samples: {len(train_frames)}\")\n    print(f\"\ud83d\udcca Validation samples: {len(val_frames)}\")\n    print(f\"\ud83d\udcca Test samples: {len(test_frames)}\")\n\n    # Create label mapping\n    posture_classes = sorted(list(set([f[\"posture\"] for f in train_frames])))\n    num_classes = len(posture_classes)\n    posture_to_idx = {posture: idx for idx, posture in enumerate(posture_classes)}\n    idx_to_posture = {idx: posture for posture, idx in posture_to_idx.items()}\n\n    print(f\"\ud83c\udff7\ufe0f Number of classes: {num_classes}\")\n    print(f\"\ud83c\udff7\ufe0f Classes: {posture_classes}\")\n\n    # Prepare data for CNN\n    def prepare_confmat_data(frames, posture_to_idx):\n        \"\"\"Convert frames to CNN input format\"\"\"\n        X = []\n        y = []\n\n        for frame in frames:\n            # Stack conf_back and conf_seat as 2 channels\n            conf_back = np.array(frame[\"conf_back\"])\n            conf_seat = np.array(frame[\"conf_seat\"])\n\n            # Stack as (height, width, channels)\n            combined = np.stack([conf_back, conf_seat], axis=-1)\n            X.append(combined)\n\n            # Get label\n            y.append(posture_to_idx[frame[\"posture\"]])\n\n        return np.array(X), np.array(y)\n\n    print(\"\\n\ud83d\udd04 Preparing ConfMat data for CNN...\")\n    X_train, y_train = prepare_confmat_data(train_frames, posture_to_idx)\n    X_val, y_val = prepare_confmat_data(val_frames, posture_to_idx)\n    X_test, y_test = prepare_confmat_data(test_frames, posture_to_idx)\n\n    print(f\"\ud83d\udcd0 X_train shape: {X_train.shape}\")\n    print(f\"\ud83d\udcd0 X_val shape: {X_val.shape}\")\n    print(f\"\ud83d\udcd0 X_test shape: {X_test.shape}\")\n    print(f\"\ud83d\udcd0 Input shape: {X_train.shape[1:]}\")\n\n    # Convert labels to categorical\n    y_train_cat = to_categorical(y_train, num_classes)\n    y_val_cat = to_categorical(y_val, num_classes)\n    y_test_cat = to_categorical(y_test, num_classes)\n\n    # Build ConfMat CNN model\n    def create_confmat_cnn(input_shape, num_classes):\n        \"\"\"\n        CNN architecture for ConfMat data\n        Input: (height, width, 2) where 2 channels are conf_back and conf_seat\n        \"\"\"\n        model = models.Sequential([\n            # First convolutional block\n            layers.Conv2D(32, (3, 3), activation='relu', padding='same', input_shape=input_shape),\n            layers.BatchNormalization(),\n            layers.Conv2D(32, (3, 3), activation='relu', padding='same'),\n            layers.MaxPooling2D((2, 2)),\n            layers.Dropout(0.25),\n\n            # Second convolutional block\n            layers.Conv2D(64, (3, 3), activation='relu', padding='same'),\n            layers.BatchNormalization(),\n            layers.Conv2D(64, (3, 3), activation='relu', padding='same'),\n            layers.MaxPooling2D((2, 2)),\n            layers.Dropout(0.25),\n\n            # Third convolutional block\n            layers.Conv2D(128, (3, 3), activation='relu', padding='same'),\n            layers.BatchNormalization(),\n            layers.Conv2D(128, (3, 3), activation='relu', padding='same'),\n            layers.MaxPooling2D((2, 2)),\n            layers.Dropout(0.25),\n\n            # Dense layers\n            layers.Flatten(),\n            layers.Dense(256, activation='relu'),\n            layers.BatchNormalization(),\n            layers.Dropout(0.5),\n            layers.Dense(128, activation='relu'),\n            layers.Dropout(0.5),\n            layers.Dense(num_classes, activation='softmax')\n        ])\n\n        model.compile(\n            optimizer='adam',\n            loss='categorical_crossentropy',\n            metrics=['accuracy']\n        )\n\n        return model\n\n    input_shape = X_train.shape[1:]  # (height, width, 2)\n    model = create_confmat_cnn(input_shape, num_classes)\n\n    print(\"\\n\ud83c\udfd7\ufe0f ConfMat CNN Model Architecture:\")\n    model.summary()\n\n    # Callbacks\n    early_stopping = EarlyStopping(\n        monitor='val_loss',\n        patience=10,\n        restore_best_weights=True,\n        verbose=1\n    )\n\n    reduce_lr = ReduceLROnPlateau(\n        monitor='val_loss',\n        factor=0.5,\n        patience=5,\n        min_lr=1e-7,\n        verbose=1\n    )\n\n    # Train model\n    print(f\"\\n\ud83d\ude80 Training ConfMat CNN for user {user_id}...\")\n    print(f\"\u2699\ufe0f Epochs: {epochs}, Batch size: {batch_size}\")\n\n    history = model.fit(\n        X_train, y_train_cat,\n        validation_data=(X_val, y_val_cat),\n        epochs=epochs,\n        batch_size=batch_size,\n        callbacks=[early_stopping, reduce_lr],\n        verbose=1\n    )\n\n    # Evaluate model\n    print(f\"\\n\ud83d\udcca Evaluating ConfMat model for user {user_id}...\")\n    train_loss, train_acc = model.evaluate(X_train, y_train_cat, verbose=0)\n    val_loss, val_acc = model.evaluate(X_val, y_val_cat, verbose=0)\n    test_loss, test_acc = model.evaluate(X_test, y_test_cat, verbose=0)\n\n    print(f\"\\n\ud83c\udfaf ConfMat CNN Results:\")\n    print(f\"   Training Accuracy: {train_acc:.4f} (Loss: {train_loss:.4f})\")\n    print(f\"   Validation Accuracy: {val_acc:.4f} (Loss: {val_loss:.4f})\")\n    print(f\"   Test Accuracy: {test_acc:.4f} (Loss: {test_loss:.4f})\")\n\n    # Generate predictions\n    y_test_pred = model.predict(X_test, verbose=0)\n    y_test_pred_classes = np.argmax(y_test_pred, axis=1)\n\n    # Classification report\n    print(f\"\\n\ud83d\udccb ConfMat Test Classification Report:\")\n    print(classification_report(\n        y_test, \n        y_test_pred_classes, \n        target_names=posture_classes,\n        digits=4\n    ))\n\n    # Confusion matrix\n    conf_matrix = confusion_matrix(y_test, y_test_pred_classes)\n    print(f\"\\n\ud83d\udcca Confusion Matrix:\")\n    print(conf_matrix)\n\n    # Save model\n    os.makedirs(confmat_cnn_model.path, exist_ok=True)\n    # Save in SavedModel format for Vertex AI\n    model.save(\n        f\"{confmat_cnn_model.path}\",  # No .h5 extension!\n        save_format='tf'  # Explicitly use TensorFlow SavedModel format\n    )\n\n    print(f\"\u2705 Model saved in SavedModel format to: {confmat_cnn_model.path}\")\n\n    # Verify the saved model structure\n    saved_model_path = f\"{confmat_cnn_model.path}\"\n    if os.path.exists(f\"{saved_model_path}/saved_model.pb\"):\n        print(f\"\u2705 Verified: saved_model.pb exists\")\n    else:\n        print(f\"\u26a0\ufe0f  Warning: saved_model.pb not found!\")\n\n    # List contents for debugging\n    print(f\"\\n\ud83d\udcc1 Contents of {saved_model_path}:\")\n    for root, dirs, files in os.walk(saved_model_path):\n        level = root.replace(saved_model_path, '').count(os.sep)\n        indent = ' ' * 2 * level\n        print(f'{indent}{os.path.basename(root)}/')\n        subindent = ' ' * 2 * (level + 1)\n        for file in files:\n            print(f'{subindent}{file}')\n\n\n    # Save metadata\n    confmat_model_metadata = {\n        \"user_id\": user_id,\n        \"model_type\": \"ConfMat_CNN\",\n        \"modality\": \"confmat\",\n        \"sensor_channels\": [\"conf_back\", \"conf_seat\"],\n        \"input_shape\": list(input_shape),\n        \"num_classes\": num_classes,\n        \"posture_classes\": posture_classes,\n        \"posture_to_idx\": posture_to_idx,\n        \"idx_to_posture\": idx_to_posture,\n        \"model_format\": \"tensorflow_savedmodel\",\n        \"training_params\": {\n            \"epochs\": epochs,\n            \"batch_size\": batch_size,\n            \"epochs_trained\": len(history.history['loss'])\n        },\n        \"performance\": {\n            \"train_accuracy\": float(train_acc),\n            \"train_loss\": float(train_loss),\n            \"val_accuracy\": float(val_acc),\n            \"val_loss\": float(val_loss),\n            \"test_accuracy\": float(test_acc),\n            \"test_loss\": float(test_loss),\n            \"best_val_accuracy\": float(max(history.history['val_accuracy']))\n        },\n        \"data_split\": {\n            \"train_samples\": len(train_frames),\n            \"val_samples\": len(val_frames),\n            \"test_samples\": len(test_frames)\n        }\n    }\n\n    with open(f\"{confmat_cnn_model.path}/confmat_model_metadata.json\", \"w\") as f:\n        json.dump(confmat_model_metadata, f, indent=2)\n\n    # Save training history\n    history_dict = {\n        \"loss\": [float(x) for x in history.history['loss']],\n        \"accuracy\": [float(x) for x in history.history['accuracy']],\n        \"val_loss\": [float(x) for x in history.history['val_loss']],\n        \"val_accuracy\": [float(x) for x in history.history['val_accuracy']]\n    }\n\n    with open(f\"{confmat_cnn_model.path}/training_history.json\", \"w\") as f:\n        json.dump(history_dict, f, indent=2)\n\n    # Save confusion matrix\n    conf_matrix_dict = {\n        \"confusion_matrix\": conf_matrix.tolist(),\n        \"labels\": posture_classes\n    }\n\n    with open(f\"{confmat_cnn_model.path}/confusion_matrix.json\", \"w\") as f:\n        json.dump(conf_matrix_dict, f, indent=2)\n\n    print(f\"\\n{'='*60}\")\n    print(f\"\u2705 CONFMAT CNN TRAINING COMPLETE\")\n    print(f\"{'='*60}\")\n    print(f\"\ud83d\udcbe Model saved to: {confmat_cnn_model.path}\")\n    print(f\"\ud83c\udfaf Final test accuracy: {test_acc:.4f}\")\n\n"
+          ],
+          "image": "gcr.io/deeplearning-platform-release/tf2-gpu.2-11:latest",
+          "resources": {
+            "cpuLimit": 8.0,
+            "memoryLimit": 32.0,
+            "resourceCpuLimit": "8",
+            "resourceMemoryLimit": "32G"
+          }
+        }
+      },
+      "exec-train-gtrace-cnn": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "train_gtrace_cnn"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'scikit-learn'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train_gtrace_cnn(\n    gtrace_train: Input[Dataset],\n    gtrace_val: Input[Dataset],\n    gtrace_test: Input[Dataset],\n    gtrace_cnn_model: Output[Model],\n    epochs: int = 30,\n    batch_size: int = 8\n):\n    \"\"\"Train CNN model for GTrace sensor data (gtrace_back + gtrace_seat)\"\"\"\n    import numpy as np\n    import json\n    import os\n    import tensorflow as tf\n    from tensorflow.keras import layers, models\n    from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau\n    from tensorflow.keras.utils import to_categorical\n    from sklearn.metrics import classification_report, confusion_matrix\n\n    print(f\"{'='*60}\")\n    print(f\"GTRACE CNN TRAINING\")\n    print(f\"{'='*60}\")\n\n    # Load train data\n    with open(f\"{gtrace_train.path}/gtrace_train_frames.json\", \"r\") as f:\n        train_frames = json.load(f)\n    with open(f\"{gtrace_train.path}/gtrace_train_metadata.json\", \"r\") as f:\n        train_metadata = json.load(f)\n\n    # Load validation data\n    with open(f\"{gtrace_val.path}/gtrace_val_frames.json\", \"r\") as f:\n        val_frames = json.load(f)\n\n    # Load test data\n    with open(f\"{gtrace_test.path}/gtrace_test_frames.json\", \"r\") as f:\n        test_frames = json.load(f)\n\n    user_id = train_metadata[\"user_id\"]\n    print(f\"\ud83d\udc64 Training GTrace CNN for user: {user_id}\")\n    print(f\"\ud83d\udcca Train samples: {len(train_frames)}\")\n    print(f\"\ud83d\udcca Validation samples: {len(val_frames)}\")\n    print(f\"\ud83d\udcca Test samples: {len(test_frames)}\")\n\n    # Create label mapping\n    posture_classes = sorted(list(set([f[\"posture\"] for f in train_frames])))\n    num_classes = len(posture_classes)\n    posture_to_idx = {posture: idx for idx, posture in enumerate(posture_classes)}\n    idx_to_posture = {idx: posture for posture, idx in posture_to_idx.items()}\n\n    print(f\"\ud83c\udff7\ufe0f Number of classes: {num_classes}\")\n    print(f\"\ud83c\udff7\ufe0f Classes: {posture_classes}\")\n\n    # Prepare data for CNN\n    def prepare_gtrace_data(frames, posture_to_idx):\n        \"\"\"Convert frames to CNN input format\"\"\"\n        X = []\n        y = []\n\n        for frame in frames:\n            # Stack gtrace_back and gtrace_seat as 2 channels\n            gtrace_back = np.array(frame[\"gtrace_back\"])\n            gtrace_seat = np.array(frame[\"gtrace_seat\"])\n\n            # Stack as (height, width, channels)\n            combined = np.stack([gtrace_back, gtrace_seat], axis=-1)\n            X.append(combined)\n\n            # Get label\n            y.append(posture_to_idx[frame[\"posture\"]])\n\n        return np.array(X), np.array(y)\n\n    print(\"\\n\ud83d\udd04 Preparing GTrace data for CNN...\")\n    X_train, y_train = prepare_gtrace_data(train_frames, posture_to_idx)\n    X_val, y_val = prepare_gtrace_data(val_frames, posture_to_idx)\n    X_test, y_test = prepare_gtrace_data(test_frames, posture_to_idx)\n\n    print(f\"\ud83d\udcd0 X_train shape: {X_train.shape}\")\n    print(f\"\ud83d\udcd0 X_val shape: {X_val.shape}\")\n    print(f\"\ud83d\udcd0 X_test shape: {X_test.shape}\")\n    print(f\"\ud83d\udcd0 Input shape: {X_train.shape[1:]}\")\n\n    # Convert labels to categorical\n    y_train_cat = to_categorical(y_train, num_classes)\n    y_val_cat = to_categorical(y_val, num_classes)\n    y_test_cat = to_categorical(y_test, num_classes)\n\n    # Build GTrace CNN model\n    def create_gtrace_cnn(input_shape, num_classes):\n        \"\"\"\n        CNN architecture for GTrace data\n        Input: (height, width, 2) where 2 channels are gtrace_back and gtrace_seat\n        \"\"\"\n        model = models.Sequential([\n            # First convolutional block\n            layers.Conv2D(32, (3, 3), activation='relu', padding='same', input_shape=input_shape),\n            layers.BatchNormalization(),\n            layers.Conv2D(32, (3, 3), activation='relu', padding='same'),\n            layers.MaxPooling2D((2, 2)),\n            layers.Dropout(0.25),\n\n            # Second convolutional block\n            layers.Conv2D(64, (3, 3), activation='relu', padding='same'),\n            layers.BatchNormalization(),\n            layers.Conv2D(64, (3, 3), activation='relu', padding='same'),\n            layers.MaxPooling2D((2, 2)),\n            layers.Dropout(0.25),\n\n            # Third convolutional block\n            layers.Conv2D(128, (3, 3), activation='relu', padding='same'),\n            layers.BatchNormalization(),\n            layers.Conv2D(128, (3, 3), activation='relu', padding='same'),\n            layers.MaxPooling2D((2, 2)),\n            layers.Dropout(0.25),\n\n            # Dense layers\n            layers.Flatten(),\n            layers.Dense(256, activation='relu'),\n            layers.BatchNormalization(),\n            layers.Dropout(0.5),\n            layers.Dense(128, activation='relu'),\n            layers.Dropout(0.5),\n            layers.Dense(num_classes, activation='softmax')\n        ])\n\n        model.compile(\n            optimizer='adam',\n            loss='categorical_crossentropy',\n            metrics=['accuracy']\n        )\n\n        return model\n\n    input_shape = X_train.shape[1:]  # (height, width, 2)\n    model = create_gtrace_cnn(input_shape, num_classes)\n\n    print(\"\\n\ud83c\udfd7\ufe0f GTrace CNN Model Architecture:\")\n    model.summary()\n\n    # Callbacks\n    early_stopping = EarlyStopping(\n        monitor='val_loss',\n        patience=10,\n        restore_best_weights=True,\n        verbose=1\n    )\n\n    reduce_lr = ReduceLROnPlateau(\n        monitor='val_loss',\n        factor=0.5,\n        patience=5,\n        min_lr=1e-7,\n        verbose=1\n    )\n\n    # Train model\n    print(f\"\\n\ud83d\ude80 Training GTrace CNN for user {user_id}...\")\n    print(f\"\u2699\ufe0f Epochs: {epochs}, Batch size: {batch_size}\")\n\n    history = model.fit(\n        X_train, y_train_cat,\n        validation_data=(X_val, y_val_cat),\n        epochs=epochs,\n        batch_size=batch_size,\n        callbacks=[early_stopping, reduce_lr],\n        verbose=1\n    )\n\n    # Evaluate model\n    print(f\"\\n\ud83d\udcca Evaluating GTrace model for user {user_id}...\")\n    train_loss, train_acc = model.evaluate(X_train, y_train_cat, verbose=0)\n    val_loss, val_acc = model.evaluate(X_val, y_val_cat, verbose=0)\n    test_loss, test_acc = model.evaluate(X_test, y_test_cat, verbose=0)\n\n    print(f\"\\n\ud83c\udfaf GTrace CNN Results:\")\n    print(f\"   Training Accuracy: {train_acc:.4f} (Loss: {train_loss:.4f})\")\n    print(f\"   Validation Accuracy: {val_acc:.4f} (Loss: {val_loss:.4f})\")\n    print(f\"   Test Accuracy: {test_acc:.4f} (Loss: {test_loss:.4f})\")\n\n    # Generate predictions\n    y_test_pred = model.predict(X_test, verbose=0)\n    y_test_pred_classes = np.argmax(y_test_pred, axis=1)\n\n    # Classification report\n    print(f\"\\n\ud83d\udccb GTrace Test Classification Report:\")\n    print(classification_report(\n        y_test, \n        y_test_pred_classes, \n        target_names=posture_classes,\n        digits=4\n    ))\n\n    # Confusion matrix\n    conf_matrix = confusion_matrix(y_test, y_test_pred_classes)\n    print(f\"\\n\ud83d\udcca Confusion Matrix:\")\n    print(conf_matrix)\n\n    # Save model\n    os.makedirs(gtrace_cnn_model.path, exist_ok=True)\n    # Save in SavedModel format for Vertex AI\n    model.save(\n        f\"{gtrace_cnn_model.path}\",  # No .h5 extension!\n        save_format='tf'  # Explicitly use TensorFlow SavedModel format\n    )\n\n    print(f\"\u2705 Model saved in SavedModel format to: {gtrace_cnn_model.path}\")\n\n    # Verify the saved model structure\n    saved_model_path = f\"{gtrace_cnn_model.path}\"\n    if os.path.exists(f\"{saved_model_path}/saved_model.pb\"):\n        print(f\"\u2705 Verified: saved_model.pb exists\")\n    else:\n        print(f\"\u26a0\ufe0f  Warning: saved_model.pb not found!\")\n\n    # List contents for debugging\n    print(f\"\\n\ud83d\udcc1 Contents of {saved_model_path}:\")\n    for root, dirs, files in os.walk(saved_model_path):\n        level = root.replace(saved_model_path, '').count(os.sep)\n        indent = ' ' * 2 * level\n        print(f'{indent}{os.path.basename(root)}/')\n        subindent = ' ' * 2 * (level + 1)\n        for file in files:\n            print(f'{subindent}{file}')\n\n    # Save metadata\n    gtrace_model_metadata = {\n        \"user_id\": user_id,\n        \"model_type\": \"GTrace_CNN\",\n        \"modality\": \"gtrace\",\n        \"sensor_channels\": [\"gtrace_back\", \"gtrace_seat\"],\n        \"input_shape\": list(input_shape),\n        \"num_classes\": num_classes,\n        \"posture_classes\": posture_classes,\n        \"posture_to_idx\": posture_to_idx,\n        \"idx_to_posture\": idx_to_posture,\n        \"model_format\": \"tensorflow_savedmodel\",\n        \"training_params\": {\n            \"epochs\": epochs,\n            \"batch_size\": batch_size,\n            \"epochs_trained\": len(history.history['loss'])\n        },\n        \"performance\": {\n            \"train_accuracy\": float(train_acc),\n            \"train_loss\": float(train_loss),\n            \"val_accuracy\": float(val_acc),\n            \"val_loss\": float(val_loss),\n            \"test_accuracy\": float(test_acc),\n            \"test_loss\": float(test_loss),\n            \"best_val_accuracy\": float(max(history.history['val_accuracy']))\n        },\n        \"data_split\": {\n            \"train_samples\": len(train_frames),\n            \"val_samples\": len(val_frames),\n            \"test_samples\": len(test_frames)\n        }\n    }\n\n    with open(f\"{gtrace_cnn_model.path}/gtrace_model_metadata.json\", \"w\") as f:\n        json.dump(gtrace_model_metadata, f, indent=2)\n\n    # Save training history\n    history_dict = {\n        \"loss\": [float(x) for x in history.history['loss']],\n        \"accuracy\": [float(x) for x in history.history['accuracy']],\n        \"val_loss\": [float(x) for x in history.history['val_loss']],\n        \"val_accuracy\": [float(x) for x in history.history['val_accuracy']]\n    }\n\n    with open(f\"{gtrace_cnn_model.path}/training_history.json\", \"w\") as f:\n        json.dump(history_dict, f, indent=2)\n\n    # Save confusion matrix\n    conf_matrix_dict = {\n        \"confusion_matrix\": conf_matrix.tolist(),\n        \"labels\": posture_classes\n    }\n\n    with open(f\"{gtrace_cnn_model.path}/confusion_matrix.json\", \"w\") as f:\n        json.dump(conf_matrix_dict, f, indent=2)\n\n    print(f\"\\n{'='*60}\")\n    print(f\"\u2705 GTRACE CNN TRAINING COMPLETE\")\n    print(f\"{'='*60}\")\n    print(f\"\ud83d\udcbe Model saved to: {gtrace_cnn_model.path}\")\n    print(f\"\ud83c\udfaf Final test accuracy: {test_acc:.4f}\")\n\n"
+          ],
+          "image": "gcr.io/deeplearning-platform-release/tf2-gpu.2-11:latest",
+          "resources": {
+            "cpuLimit": 8.0,
+            "memoryLimit": 32.0,
+            "resourceCpuLimit": "8",
+            "resourceMemoryLimit": "32G"
+          }
+        }
+      },
+      "exec-trigger-webhook": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "trigger_webhook"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'requests'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef trigger_webhook(user_id: str, webhook_url: str, model_info: Input[Dataset]):\n    \"\"\"\n    Triggers a webhook with the user ID as JSON payload.\n    \"\"\"\n    import json\n    import requests\n\n    with open(model_info.path) as f:\n        data = json.load(f)\n\n    gtrace_id =  data[\"gtrace_model_id\"].split(\"/\")[5]\n    confmat_id = data[\"confmat_model_id\"].split(\"/\")[5]\n\n    # Create payload safely\n    payload = json.dumps({\"userId\": user_id, \"state\": \"PIPELINE_STATE_SUCCEEDED\", \"gtrace\": gtrace_id, \"confmat\": confmat_id})\n\n    # Set headers\n    headers = {\"Content-Type\": \"application/json\"}\n\n    # Send POST request\n    response = requests.post(webhook_url, data=payload, headers=headers)\n\n    print(f\"Webhook response status: {response.status_code}\")\n    print(f\"Webhook response body: {response.text}\")\n\n    # Optionally raise exception if webhook failed\n    response.raise_for_status()\n\n"
+          ],
+          "image": "python:3.11"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "description": "Personalized posture classification pipeline for individual users",
+    "name": "user-specific-posture-pipeline"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "augment-user-posture-data": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-augment-user-posture-data"
+          },
+          "dependentTasks": [
+            "preprocess-user-posture-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "preprocessed_frames": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "preprocessed_frames",
+                  "producerTask": "preprocess-user-posture-data"
+                }
+              }
+            },
+            "parameters": {
+              "sample_size_per_posture": {
+                "componentInputParameter": "augmentation_samples"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Augment Posture Data"
+          }
+        },
+        "normalize-confmat-and-gtrace-data": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-normalize-confmat-and-gtrace-data"
+          },
+          "dependentTasks": [
+            "augment-user-posture-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "augmented_frames": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "augmented_frames",
+                  "producerTask": "augment-user-posture-data"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Normalize ConfMat & GTrace"
+          }
+        },
+        "preprocess-user-posture-data": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-preprocess-user-posture-data"
+          },
+          "inputs": {
+            "parameters": {
+              "bucket_name": {
+                "componentInputParameter": "bucket_name"
+              },
+              "user_id": {
+                "componentInputParameter": "user_id"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Preprocess NPZ Data"
+          }
+        },
+        "register-user-models": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-register-user-models"
+          },
+          "dependentTasks": [
+            "train-confmat-cnn",
+            "train-gtrace-cnn"
+          ],
+          "inputs": {
+            "artifacts": {
+              "confmat_model": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "confmat_cnn_model",
+                  "producerTask": "train-confmat-cnn"
+                }
+              },
+              "gtrace_model": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "gtrace_cnn_model",
+                  "producerTask": "train-gtrace-cnn"
+                }
+              }
+            },
+            "parameters": {
+              "user_id": {
+                "componentInputParameter": "user_id"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "register-user-models"
+          }
+        },
+        "split-train-val-test-data": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-split-train-val-test-data"
+          },
+          "dependentTasks": [
+            "normalize-confmat-and-gtrace-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "normalized_confmat": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "normalized_confmat",
+                  "producerTask": "normalize-confmat-and-gtrace-data"
+                }
+              },
+              "normalized_gtrace": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "normalized_gtrace",
+                  "producerTask": "normalize-confmat-and-gtrace-data"
+                }
+              }
+            },
+            "parameters": {
+              "random_seed": {
+                "componentInputParameter": "random_seed"
+              },
+              "test_split": {
+                "componentInputParameter": "test_split"
+              },
+              "train_split": {
+                "componentInputParameter": "train_split"
+              },
+              "val_split": {
+                "componentInputParameter": "val_split"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Split Train/Val/Test"
+          }
+        },
+        "train-confmat-cnn": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-train-confmat-cnn"
+          },
+          "dependentTasks": [
+            "split-train-val-test-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "confmat_test": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "confmat_test",
+                  "producerTask": "split-train-val-test-data"
+                }
+              },
+              "confmat_train": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "confmat_train",
+                  "producerTask": "split-train-val-test-data"
+                }
+              },
+              "confmat_val": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "confmat_val",
+                  "producerTask": "split-train-val-test-data"
+                }
+              }
+            },
+            "parameters": {
+              "batch_size": {
+                "componentInputParameter": "cnn_batch_size"
+              },
+              "epochs": {
+                "componentInputParameter": "cnn_epochs"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Train ConfMat CNN"
+          }
+        },
+        "train-gtrace-cnn": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-train-gtrace-cnn"
+          },
+          "dependentTasks": [
+            "split-train-val-test-data"
+          ],
+          "inputs": {
+            "artifacts": {
+              "gtrace_test": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "gtrace_test",
+                  "producerTask": "split-train-val-test-data"
+                }
+              },
+              "gtrace_train": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "gtrace_train",
+                  "producerTask": "split-train-val-test-data"
+                }
+              },
+              "gtrace_val": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "gtrace_val",
+                  "producerTask": "split-train-val-test-data"
+                }
+              }
+            },
+            "parameters": {
+              "batch_size": {
+                "componentInputParameter": "cnn_batch_size"
+              },
+              "epochs": {
+                "componentInputParameter": "cnn_epochs"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Train GTrace CNN"
+          }
+        },
+        "trigger-webhook": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-trigger-webhook"
+          },
+          "dependentTasks": [
+            "register-user-models"
+          ],
+          "inputs": {
+            "artifacts": {
+              "model_info": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "output_dataset",
+                  "producerTask": "register-user-models"
+                }
+              }
+            },
+            "parameters": {
+              "user_id": {
+                "componentInputParameter": "user_id"
+              },
+              "webhook_url": {
+                "runtimeValue": {
+                  "constant": "https://pipelinewebhook-hfarmdvsyq-uc.a.run.app"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "trigger-webhook"
+          }
+        }
+      }
+    },
+    "inputDefinitions": {
+      "parameters": {
+        "augmentation_samples": {
+          "defaultValue": 1.0,
+          "description": "Number of augmented samples per frame",
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "bucket_name": {
+          "description": "GCS bucket containing user data",
+          "parameterType": "STRING"
+        },
+        "cnn_batch_size": {
+          "defaultValue": 8.0,
+          "description": "Batch size for CNN training",
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "cnn_epochs": {
+          "defaultValue": 30.0,
+          "description": "Number of training epochs for CNNs",
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "random_seed": {
+          "defaultValue": 42.0,
+          "description": "Random seed for reproducibility",
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "test_split": {
+          "defaultValue": 0.15,
+          "description": "Test set proportion (default 0.15)",
+          "isOptional": true,
+          "parameterType": "NUMBER_DOUBLE"
+        },
+        "train_split": {
+          "defaultValue": 0.7,
+          "description": "Training set proportion (default 0.7)",
+          "isOptional": true,
+          "parameterType": "NUMBER_DOUBLE"
+        },
+        "user_id": {
+          "description": "User identifier (e.g., \"janusz-kulon\")",
+          "parameterType": "STRING"
+        },
+        "val_split": {
+          "defaultValue": 0.15,
+          "description": "Validation set proportion (default 0.15)",
+          "isOptional": true,
+          "parameterType": "NUMBER_DOUBLE"
+        }
+      }
+    }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-2.14.6"
+}

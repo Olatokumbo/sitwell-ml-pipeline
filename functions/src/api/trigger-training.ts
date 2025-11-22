@@ -17,12 +17,12 @@ export const triggerTraining = functions.https.onCall(
     const data = request.data;
 
     // Verify authentication
-    if (!request.auth) {
-      throw new functions.https.HttpsError(
-        "unauthenticated",
-        "User must be authenticated"
-      );
-    }
+    // if (!request.auth) {
+    //   throw new functions.https.HttpsError(
+    //     "unauthenticated",
+    //     "User must be authenticated"
+    //   );
+    // }
 
     const { userId } = data;
 

@@ -4,6 +4,9 @@ import { env } from "./config";
 import { dataUploadTrigger } from "./api/data-upload-trigger";
 import { pipelineWebhook } from "./api/pipeline-webhook";
 import { inference } from "./api/inference";
+import * as admin from "firebase-admin";
+
+admin.initializeApp();
 
 setGlobalOptions({
   maxInstances: 10,

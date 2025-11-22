@@ -20,7 +20,7 @@ export async function startUserTrainingPipeline(
     const displayName = `user-${userId}-training-${timestamp}`;
 
     // Pipeline template path
-    const templateUri = `https://${region}-kfp.pkg.dev/sitwell/sitwell/posture-pipeline-v1/latest`;
+    const templateUri = `https://${region}-kfp.pkg.dev/project-sitwell/sitwell/posture-pipeline-v1/latest`;
 
     const parameterValues: { [key: string]: protos.google.protobuf.IValue } = {
       bucket_name: { stringValue: bucketName },
