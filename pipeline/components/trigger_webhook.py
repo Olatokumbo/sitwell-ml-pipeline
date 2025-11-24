@@ -15,8 +15,8 @@ def trigger_webhook(user_id: str, webhook_url: str, model_info: Input[Dataset]):
     with open(model_info.path) as f:
         data = json.load(f)
 
-    gtrace_id =  data["gtrace_model_id"].split("/")[5]
-    confmat_id = data["confmat_model_id"].split("/")[5]
+    gtrace_id =  data["gtrace_endpoint_id"].split("/")[5]
+    confmat_id = data["confmat_endpoint_id"].split("/")[5]
     
     # Create payload safely
     payload = json.dumps({"userId": user_id, "state": "PIPELINE_STATE_SUCCEEDED", "gtrace": gtrace_id, "confmat": confmat_id})

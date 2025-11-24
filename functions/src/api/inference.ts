@@ -8,10 +8,61 @@ const client = new PredictionServiceClient({
 });
 
 /**
+ * Normalize sensor data using StandardScaler parameters
+ */
+const normalizeData = (
+  backrest: number[][],
+  seat: number[][],
+  mean: number[],
+  scale: number[]
+): number[][][] => {
+  // Flatten both sensors into single array (2048 values)
+  const flat: number[] = [];
+
+  // Add backrest (1024 values) - row by row
+  for (let i = 0; i < 32; i++) {
+    for (let j = 0; j < 32; j++) {
+      flat.push(backrest[i][j]);
+    }
+  }
+
+  // Add seat (1024 values) - row by row
+  for (let i = 0; i < 32; i++) {
+    for (let j = 0; j < 32; j++) {
+      flat.push(seat[i][j]);
+    }
+  }
+
+  // Verify we have correct number of features
+  if (flat.length !== mean.length || flat.length !== scale.length) {
+    throw new Error(
+      `Feature mismatch: data=${flat.length}, mean=${mean.length}, scale=${scale.length}`
+    );
+  }
+
+  // Apply normalization: (x - mean) / scale
+  const normalized = flat.map((val, idx) => (val - mean[idx]) / scale[idx]);
+
+  // Reshape to 32x32x2 format (height, width, channels)
+  const result: number[][][] = [];
+  for (let i = 0; i < 32; i++) {
+    const row: number[][] = [];
+    for (let j = 0; j < 32; j++) {
+      const backrestIdx = i * 32 + j;
+      const seatIdx = 1024 + i * 32 + j;
+      row.push([normalized[backrestIdx], normalized[seatIdx]]);
+    }
+    result.push(row);
+  }
+
+  return result;
+};
+
+/**
  * HTTPS endpoint that performs inference using the user's personalized model.
  */
 export const inference = functions.https.onRequest(
-  { memory: "4GiB", concurrency: 1 },
+  { memory: "128MiB", concurrency: 1, minInstances: 1 },
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send({ error: "Method not allowed" });
@@ -30,6 +81,30 @@ export const inference = functions.https.onRequest(
         return;
       }
 
+      // Validate input dimensions
+      if (
+        !gtrace.backrest ||
+        !gtrace.seat ||
+        gtrace.backrest.length !== 32 ||
+        gtrace.seat.length !== 32
+      ) {
+        res.status(400).send({ error: "Invalid gtrace data dimensions" });
+        return;
+      }
+
+      if (
+        !conf.backrest ||
+        !conf.seat ||
+        conf.backrest.length !== 32 ||
+        conf.seat.length !== 32
+      ) {
+        res.status(400).send({ error: "Invalid conf data dimensions" });
+        return;
+      }
+
+      console.log(`🔍 Processing inference request for user: ${userId}`);
+
+      // Get user's calibration data from Firestore
       const calibrationDoc = await admin
         .firestore()
         .collection("calibration_sessions")
@@ -37,7 +112,7 @@ export const inference = functions.https.onRequest(
         .get();
 
       if (!calibrationDoc.exists) {
-        res.status(404).send({ error: "Calibration Record not found" });
+        res.status(404).send({ error: "Calibration record not found" });
         return;
       }
 
@@ -45,30 +120,46 @@ export const inference = functions.https.onRequest(
       const gtraceEndpointId = data?.gtrace;
       const conformatEndpointId = data?.confmat;
 
+      // 🔑 Get scaler metadata from Firestore
+      const gtraceScaler = data?.gtrace_scaler;
+      const confmatScaler = data?.confmat_scaler;
+
+      // Validate endpoints exist
       if (!gtraceEndpointId || !conformatEndpointId) {
-        res.status(400).send({ error: "One or both models are not deployed" });
+        res.status(400).send({
+          error: "One or both models are not deployed",
+          details: {
+            gtraceDeployed: !!gtraceEndpointId,
+            confmatDeployed: !!conformatEndpointId,
+          },
+        });
         return;
       }
 
-      // Transform data from {backrest: 32x32, seat: 32x32}
-      // to 32x32x2 format matching training:
-      // np.stack([gtrace_back, gtrace_seat], axis=-1)
-      const transformTo32x32x2 = (
-        backrest: number[][],
-        seat: number[][]
-      ): number[][][] => {
-        const result: number[][][] = [];
+      // Validate scalers exist
+      if (!gtraceScaler?.mean || !gtraceScaler?.scale) {
+        res.status(400).send({
+          error: "GTrace scaler not found",
+          details: "Model may not be trained yet",
+        });
+        return;
+      }
 
-        for (let i = 0; i < 32; i++) {
-          const row: number[][] = [];
-          for (let j = 0; j < 32; j++) {
-            row.push([backrest[i][j], seat[i][j]]);
-          }
-          result.push(row);
-        }
+      if (!confmatScaler?.mean || !confmatScaler?.scale) {
+        res.status(400).send({
+          error: "ConfMat scaler not found",
+          details: "Model may not be trained yet",
+        });
+        return;
+      }
 
-        return result;
-      };
+      console.log(`✅ Loaded scalers for user ${userId}`);
+      console.log(
+        `   GTrace: ${gtraceScaler.n_features} features, ${gtraceScaler.n_samples_fit} samples fitted`
+      );
+      console.log(
+        `   ConfMat: ${confmatScaler.n_features} features, ${confmatScaler.n_samples_fit} samples fitted`
+      );
 
       // Helper to convert 1D array → protobuf list
       const makeListValue = (
@@ -91,9 +182,45 @@ export const inference = functions.https.onRequest(
         values: arr.map((matrix) => ({ listValue: make2DListValue(matrix) })),
       });
 
-      // Transform both gtrace and conf to 32x32x2 format
-      const gtraceData = transformTo32x32x2(gtrace.backrest, gtrace.seat);
-      const confData = transformTo32x32x2(conf.backrest, conf.seat);
+      // 🔑 NORMALIZE the data using user's personal scalers
+      console.log("📊 Normalizing gtrace data...");
+      const gtraceData = normalizeData(
+        gtrace.backrest,
+        gtrace.seat,
+        gtraceScaler.mean,
+        gtraceScaler.scale
+      );
+
+      console.log("📊 Normalizing confmat data...");
+      const confData = normalizeData(
+        conf.backrest,
+        conf.seat,
+        confmatScaler.mean,
+        confmatScaler.scale
+      );
+
+      // Optional: Verify normalization (can remove in production)
+      const flatGtrace = gtraceData.flat(2);
+      const gtraceMean =
+        flatGtrace.reduce((a, b) => a + b, 0) / flatGtrace.length;
+      const gtraceVariance =
+        flatGtrace.reduce(
+          (sum, val) => sum + Math.pow(val - gtraceMean, 2),
+          0
+        ) / flatGtrace.length;
+      const gtraceStd = Math.sqrt(gtraceVariance);
+
+      console.log(
+        `✅ GTrace normalized - mean: ${gtraceMean.toFixed(
+          6
+        )}, std: ${gtraceStd.toFixed(6)}`
+      );
+
+      if (Math.abs(gtraceMean) > 0.1 || Math.abs(gtraceStd - 1.0) > 0.2) {
+        console.warn(
+          "⚠️  Warning: GTrace normalization may be incorrect (mean should be ~0, std should be ~1)"
+        );
+      }
 
       // Create instances
       const gtraceInstance: protos.google.protobuf.IValue = {
@@ -107,8 +234,9 @@ export const inference = functions.https.onRequest(
       const gtraceEndpoint = `projects/${env.GCLOUD_PROJECT_NUMBER}/locations/${env.GCLOUD_REGION}/endpoints/${gtraceEndpointId}`;
       const conformatEndpoint = `projects/${env.GCLOUD_PROJECT_NUMBER}/locations/${env.GCLOUD_REGION}/endpoints/${conformatEndpointId}`;
 
-      console.log("🎯 Gtrace Endpoint:", gtraceEndpoint);
-      console.log("🎯 Confmat Endpoint:", conformatEndpoint);
+      console.log("🎯 Sending predictions to:");
+      console.log(`   GTrace: ${gtraceEndpoint}`);
+      console.log(`   ConfMat: ${conformatEndpoint}`);
 
       // 🔄 Run both predictions in parallel
       try {
@@ -146,6 +274,18 @@ export const inference = functions.https.onRequest(
         const gtraceConfidence = gtraceProbabilities[gtracePredictedClass];
         const confConfidence = confProbabilities[confPredictedClass];
 
+        console.log("✅ Predictions successful:");
+        console.log(
+          `   GTrace: class ${gtracePredictedClass}, confidence ${(
+            gtraceConfidence * 100
+          ).toFixed(2)}%`
+        );
+        console.log(
+          `   ConfMat: class ${confPredictedClass}, confidence ${(
+            confConfidence * 100
+          ).toFixed(2)}%`
+        );
+
         res.status(200).send({
           message: "Inference successful",
           gtrace: {
@@ -164,12 +304,16 @@ export const inference = functions.https.onRequest(
         res.status(500).send({
           error: "Prediction failed",
           details: predictionError.message,
+          stack: predictionError.stack,
         });
         return;
       }
     } catch (error: any) {
       console.error("❌ Inference error:", error);
-      res.status(500).send({ error: error.message });
+      res.status(500).send({
+        error: error.message,
+        stack: error.stack,
+      });
       return;
     }
   }

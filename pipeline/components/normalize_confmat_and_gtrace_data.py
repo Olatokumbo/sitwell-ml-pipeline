@@ -31,7 +31,7 @@ def normalize_confmat_and_gtrace_data(
     
     user_id = metadata["user_id"]
     print(f"👤 Normalizing data for user: {user_id}")
-    print(f"🔹 Processing both ConfMat and GTrace modalities")
+    print("🔹 Processing both ConfMat and GTrace modalities")
     print(f"📊 Original frames: {len(original_frames)}")
     print(f"📊 Augmented frames: {len(augmented_dataset)}")
     

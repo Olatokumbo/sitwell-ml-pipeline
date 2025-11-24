@@ -6,14 +6,16 @@ from .register_user_models import register_user_models
 from .train_confmat_cnn import train_confmat_cnn
 from .train_gtrace_cnn import train_gtrace_cnn
 from .trigger_webhook import trigger_webhook
+from .upload_scaler_to_firestore import upload_scaler_to_firestore
 
 __all__ = [
     'preprocess_user_posture_data',
     'augment_user_posture_data',
     'normalize_confmat_and_gtrace_data',
-    'split_train_val_test_data'
+    'upload_scaler_to_firestore',
+    'split_train_val_test_data',
     'register_user_models',
     'train_confmat_cnn',
-    'train_gtrace_cnn'
-    'trigger_webhook'
+    'train_gtrace_cnn',
+    'trigger_webhook',
 ]

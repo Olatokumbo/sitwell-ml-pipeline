@@ -1,7 +1,7 @@
 # user_specific_pipeline.py - Personalized posture pipeline for individual users
 from kfp.v2 import dsl, compiler
 from kfp.v2.dsl import component, pipeline, Input, Output, Dataset, Model
-from components import (preprocess_user_posture_data, augment_user_posture_data, normalize_confmat_and_gtrace_data, split_train_val_test_data, register_user_models, train_confmat_cnn, train_gtrace_cnn, trigger_webhook)
+from components import (preprocess_user_posture_data, augment_user_posture_data, normalize_confmat_and_gtrace_data, upload_scaler_to_firestore, split_train_val_test_data, register_user_models, train_confmat_cnn, train_gtrace_cnn, trigger_webhook)
 
 @pipeline(
     name="user-specific-posture-pipeline",
@@ -67,6 +67,12 @@ def user_specific_posture_pipeline(
     normalize_task.set_cpu_limit('4')
     normalize_task.set_cpu_request('2')
     
+    upload_scaler_to_firestore(
+        gtrace_scaler=normalize_task.outputs["gtrace_scaler"],
+        confmat_scaler=normalize_task.outputs["confmat_scaler"],
+        user_id=user_id
+    )
+    
     
     split_task = split_train_val_test_data(
         normalized_confmat=normalize_task.outputs["normalized_confmat"],
@@ -115,7 +121,7 @@ def user_specific_posture_pipeline(
         confmat_model=train_confmat_task.outputs['confmat_cnn_model']
     )
     
-    webhook_task = trigger_webhook(
+    trigger_webhook(
         user_id=user_id,
         webhook_url="https://pipelinewebhook-hfarmdvsyq-uc.a.run.app",
         model_info=register_task.outputs['output_dataset']

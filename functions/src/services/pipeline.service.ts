@@ -25,8 +25,8 @@ export async function startUserTrainingPipeline(
     const parameterValues: { [key: string]: protos.google.protobuf.IValue } = {
       bucket_name: { stringValue: bucketName },
       user_id: { stringValue: userId },
-      augmentation_samples: { numberValue: 5 },
-      cnn_epochs: { numberValue: 30 },
+      augmentation_samples: { numberValue: 1 },
+      cnn_epochs: { numberValue: 5 },
       cnn_batch_size: { numberValue: 8 },
     };
     // Create pipeline job request
