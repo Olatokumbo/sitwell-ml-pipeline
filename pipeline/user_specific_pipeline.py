@@ -22,7 +22,7 @@ def user_specific_posture_pipeline(
     Complete pipeline for user-specific posture classification with dual CNN models.
     
     Pipeline Flow:
-    1. Preprocess NPZ files (SP01-SP19) for the user
+    1. Preprocess Parquet files for the user
     2. Augment data independently for ConfMat and GTrace
     3. Normalize both modalities separately
     4. Split into train/val/test sets
@@ -47,7 +47,7 @@ def user_specific_posture_pipeline(
         bucket_name=bucket_name,
         user_id=user_id
     )
-    preprocess_task.set_display_name("Preprocess NPZ Data")
+    preprocess_task.set_display_name("Preprocess Parquet Data")
     
     augment_task = augment_user_posture_data(
         preprocessed_frames=preprocess_task.outputs["preprocessed_frames"],

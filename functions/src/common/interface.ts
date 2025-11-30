@@ -23,3 +23,10 @@ export interface User {
   gtraceEndpointId?: string;
   conformatEndpointId?: string;
 }
+
+export interface Posture {
+  id: string;
+  name: string;
+  description: string;
+  descriptor: string[];
+}

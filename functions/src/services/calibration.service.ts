@@ -1,7 +1,6 @@
 import * as admin from "firebase-admin";
 import { storage } from "../config";
-import { CalibrationSession } from "../common/interface";
-import { postures } from "../common/constant";
+import { CalibrationSession, Posture } from "../common/interface";
 
 /**
  * Check if user has completed all required calibration postures
@@ -17,17 +16,19 @@ export async function isCalibrationComplete(
     const [files] = await bucket.getFiles({ prefix: userFolder });
 
     const existingFiles = files
-      .filter((file) => file.name.endsWith(".npz"))
+      .filter((file) => file.name.endsWith(".parquet"))
       .map((file) => file.name.split("/").pop() || "");
 
     console.log(`📁 Existing files for ${userId}:`, existingFiles);
 
-    const missingRequired = postures.filter((f) => !existingFiles.includes(f));
+    // const postures = await getAllPostures();
 
-    if (missingRequired.length > 0) {
-      console.log(`📋 Missing required files for ${userId}:`, missingRequired);
-      return false;
-    }
+    // const missingRequired = postures.filter((f) => !existingFiles.includes(f));
+
+    // if (missingRequired.length > 0) {
+    //   console.log(`📋 Missing required files for ${userId}:`, missingRequired);
+    //   return false;
+    // }
 
     console.log(`🎉 All required calibration files present for ${userId}!`);
 
@@ -65,7 +66,9 @@ export async function getRemainingPostures(userId: string): Promise<string[]> {
       );
     }
 
-    return postures;
+    const postures = await getAllPostures();
+
+    return postures.map((posture) => posture.id);
   } catch (error) {
     console.error(`❌ Error getting remaining postures for ${userId}:`, error);
     return [];
@@ -98,11 +101,13 @@ export async function updateCalibrationProgress(
       });
     }
   } else {
+    const requiredPostures = await getAllPostures();
+
     // Create new calibration session
     const newSession: CalibrationSession = {
       userId,
       sessionStart: new Date().toISOString(),
-      requiredPostures: postures,
+      requiredPostures: requiredPostures.map((rp) => rp.id),
       optionalPostures: [],
       completedPostures: [completedPosture],
       status: "in_progress",
@@ -111,4 +116,15 @@ export async function updateCalibrationProgress(
 
     await calibrationRef.set(newSession);
   }
+}
+/**
+ * Get all postures from Firestore
+ * @returns
+ */
+async function getAllPostures() {
+  const postureRef = await admin.firestore().collection("postures").get();
+  return postureRef.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Posture[];
 }

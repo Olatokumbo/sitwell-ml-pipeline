@@ -16,7 +16,7 @@ export const dataUploadTrigger = onObjectFinalized(async (object) => {
   if (
     !filePath ||
     !filePath.includes("/posture_data/") ||
-    !filePath.endsWith(".npz")
+    !filePath.endsWith(".parquet")
   ) {
     console.log(`⏭️ Ignoring non-posture file: ${filePath}`);
     return null;
@@ -30,13 +30,16 @@ export const dataUploadTrigger = onObjectFinalized(async (object) => {
   }
 
   const userId = pathParts[1];
-  const postureName = pathParts[3].replace(".npz", "");
+  const postureName = pathParts[3].replace(".parquet", "");
 
   console.log(`👤 New calibration data for user: ${userId}`);
   console.log(`📄 Posture: ${postureName}`);
 
   try {
-    await updateCalibrationProgress(userId, postureName);
+    await updateCalibrationProgress(
+      userId,
+      postureName.substring(postureName.indexOf("-") + 1)
+    );
     return null;
   } catch (error) {
     console.error(`❌ Error processing calibration for user ${userId}:`, error);
